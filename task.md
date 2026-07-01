@@ -1,0 +1,15 @@
+- [x] Create `ToastContext.tsx`
+- [x] Update `layout.tsx` to include `ToastProvider`
+- [x] Update `Header.tsx` to use `useToast`
+- [x] Update `src/app/profile/page.tsx` to use `useToast`
+- [x] Update `src/app/diamonds/page.tsx` to use `useToast`
+- [x] Create `src/components/InternationalPopup.tsx` geolocation detection modal
+- [x] Update `src/components/Header.tsx` to support `IN / INR` and render the popup
+- [x] Update pricing formatters in `page.tsx` (Home, Cart, Checkout, Products, Profile)
+- [x] Connect database to Supabase PostgreSQL and run seed migrations
+- [x] Enhance backend API routes with GET/PUT for single product management
+- [x] Fix mega menu clashing (bleed-through opacity) and clarify duplicate navigation links
+- [x] Remove custom cursor component and override native cursor-none stylesheets
+- [x] Clean up all remaining legacy cursor-none classes to restore native pointers
+- [x] Implement interactive auto-swiping slideshow carousel banner with custom model-wearing images
+- [x] Run compilation checksaturing a dynamic interactive GIA diamond shape showcase card.

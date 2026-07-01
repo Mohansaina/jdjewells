@@ -525,10 +525,10 @@ button, input, select {
 }
 
 /* Custom JD Jewellers Collection background mappings */
-.card-pendants { background-image: url('./assets/images/pendant_vvs_custom.png'); }
-.card-chains { background-image: url('./assets/images/chain_cuban_gold.png'); }
-.card-grillz { background-image: url('./assets/images/grillz_gold_custom.png'); }
-.card-watches { background-image: url('./assets/images/watch_royal_iced.png'); }
+.card-pendants { background-image: url('./assets/images/495796722_17855245344426391_1865744983267983749_n.jpg'); }
+.card-chains { background-image: url('./assets/images/495915671_1751273732121557_3256046164248814030_n.jpg'); }
+.card-grillz { background-image: url('./assets/images/497435148_597443402699287_4382447146201741254_n.jpg'); }
+.card-watches { background-image: url('./assets/images/497833627_1393279941815368_7853538822560960896_n.jpg'); }
 
 .collection-card:hover .collection-card-bg {
   transform: scale(1.08);

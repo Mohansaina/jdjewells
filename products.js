@@ -7,9 +7,9 @@ const PRODUCTS = [
     price: 4500,
     rating: 4.9,
     reviewsCount: 48,
-    image: "./assets/images/pendant_vvs_custom.png",
+    image: "./assets/images/495796722_17855245344426391_1865744983267983749_n.jpg",
     thumbnails: [
-      "./assets/images/pendant_vvs_custom.png"
+      "./assets/images/495796722_17855245344426391_1865744983267983749_n.jpg"
     ],
     description: "A custom-molded masterpiece crafted in-house. This VVS Diamond Pendant features hand-set, brilliant-cut VVS clarity diamonds encrusted on a stunning crowned skull motif, cast from solid 18k yellow gold. Each piece is polished to a mirror shine.",
     specs: {
@@ -32,9 +32,9 @@ const PRODUCTS = [
     price: 3200,
     rating: 4.9,
     reviewsCount: 37,
-    image: "./assets/images/chain_cuban_gold.png",
+    image: "./assets/images/495915671_1751273732121557_3256046164248814030_n.jpg",
     thumbnails: [
-      "./assets/images/chain_cuban_gold.png"
+      "./assets/images/495915671_1751273732121557_3256046164248814030_n.jpg"
     ],
     description: "The gold standard of luxury streetwear. Our 18k Miami Cuban Link Chain is crafted from solid yellow gold links, hand-polished and fitted with a sleek, heavy-duty custom box lock with dual safety latches.",
     specs: {
@@ -57,9 +57,9 @@ const PRODUCTS = [
     price: 1850,
     rating: 4.8,
     reviewsCount: 29,
-    image: "./assets/images/grillz_gold_custom.png",
+    image: "./assets/images/497435148_597443402699287_4382447146201741254_n.jpg",
     thumbnails: [
-      "./assets/images/grillz_gold_custom.png"
+      "./assets/images/497435148_597443402699287_4382447146201741254_n.jpg"
     ],
     description: "Custom molded upper or lower set of 6 teeth grillz. Hand-crafted from premium solid 18k yellow gold, meticulously polished to deliver a blinding gold shine. Includes custom molding kit and step-by-step instructions for a perfect fit.",
     specs: {
@@ -82,9 +82,9 @@ const PRODUCTS = [
     price: 9500,
     rating: 4.9,
     reviewsCount: 16,
-    image: "./assets/images/watch_royal_iced.png",
+    image: "./assets/images/497833627_1393279941815368_7853538822560960896_n.jpg",
     thumbnails: [
-      "./assets/images/watch_royal_iced.png"
+      "./assets/images/497833627_1393279941815368_7853538822560960896_n.jpg"
     ],
     description: "Make a statement that cannot be ignored. The Royal Chronograph features a custom iced-out bezel and integrated bracelet, fully hand-paved with high-dispersion VVS Moissanite stones that pass thermal diamond testers. Fitted with a precise Japanese automatic movement.",
     specs: {
@@ -106,9 +106,9 @@ const PRODUCTS = [
     price: 3800,
     rating: 4.9,
     reviewsCount: 22,
-    image: "./assets/images/bracelet_tennis_diamond.png",
+    image: "./assets/images/498699131_2986753871486070_5423507970220177199_n.jpg",
     thumbnails: [
-      "./assets/images/bracelet_tennis_diamond.png"
+      "./assets/images/498699131_2986753871486070_5423507970220177199_n.jpg"
     ],
     description: "A timeless classic modernized. Our VVS Diamond Tennis Bracelet is composed of a continuous, fluid line of matched round brilliant-cut VVS diamonds prong-set in solid 14k white gold. Seamless double-latch safety clasp.",
     specs: {
@@ -130,9 +130,9 @@ const PRODUCTS = [
     price: 2400,
     rating: 4.8,
     reviewsCount: 31,
-    image: "./assets/images/nameplate_custom_iced.png",
+    image: "./assets/images/499601723_1123628196153982_5964509621593198443_n.jpg",
     thumbnails: [
-      "./assets/images/nameplate_custom_iced.png"
+      "./assets/images/499601723_1123628196153982_5964509621593198443_n.jpg"
     ],
     description: "Represent your name in style. Our Custom Iced Out Nameplate features custom 3D script lettering paved with brilliant-cut VVS diamonds, framed with a high-polish solid 14k yellow gold border. Fits up to 8 characters.",
     specs: {

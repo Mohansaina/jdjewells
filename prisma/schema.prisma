@@ -1,0 +1,124 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  passwordHash   String
+  name           String
+  role           Role            @default(CUSTOMER)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  orders         Order[]
+  configurations Configuration[]
+}
+
+model Product {
+  id             String        @id @default(uuid())
+  title          String
+  description    String
+  category       String
+  material       String
+  price          Float
+  image          String
+  thumbnails     String[]
+  rating         Float         @default(4.5)
+  reviewsCount   Int           @default(0)
+  specs          String        // Serialized JSON spec properties
+  care           String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  reviews        Review[]
+  orderItems     OrderItem[]
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author    String
+  rating    Int
+  comment   String
+  date      String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model Diamond {
+  id             String      @id @default(uuid())
+  vdbId          String?     @unique
+  shape          String
+  carat          Float
+  color          String
+  clarity        String
+  cut            String
+  polish         String?
+  symmetry       String?
+  fluorescence   String?
+  certificate    String
+  certificateNo  String      @unique
+  certificateUrl String?
+  price          Float
+  imageUrl       String?
+  videoUrl       String?
+  createdAt      DateTime    @default(now())
+  orderItems     OrderItem[]
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status          String      @default("PLACED")
+  total           Float
+  shippingName    String
+  shippingEmail   String
+  shippingPhone   String
+  shippingAddress String
+  shippingCity    String
+  shippingZip     String
+  paymentId       String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id              String         @id @default(uuid())
+  orderId         String
+  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  diamondId       String?
+  diamond         Diamond?       @relation(fields: [diamondId], references: [id], onDelete: SetNull)
+  customConfigId  String?
+  customConfig    Configuration? @relation(fields: [customConfigId], references: [id], onDelete: SetNull)
+  quantity        Int            @default(1)
+  price           Float
+}
+
+model Configuration {
+  id          String      @id @default(uuid())
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  category    String
+  shape       String
+  setting     String
+  metal       String
+  size        String
+  diamondVdbId String?
+  price       Float
+  createdAt   DateTime    @default(now())
+  orderItems  OrderItem[]
+}
