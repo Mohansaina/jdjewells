@@ -64,6 +64,7 @@ export default function DiamondCompare({ diamonds, onRemove, onClose, onAttach }
       'GB / GBP': '£',
       'US / USD': '$',
       'EU / EUR': '€',
+      'IN / INR': '₹',
     }[currency] || '$';
 
     const rate = {
@@ -71,6 +72,7 @@ export default function DiamondCompare({ diamonds, onRemove, onClose, onAttach }
       'GB / GBP': 0.78,
       'US / USD': 1.0,
       'EU / EUR': 0.92,
+      'IN / INR': 83.5,
     }[currency] || 1.0;
 
     const converted = amount * rate;

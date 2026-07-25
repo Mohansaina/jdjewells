@@ -89,32 +89,12 @@ function DiamondsPageContent() {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useCart();
   const { warning } = useToast();
 
-  // Search Mode States
-  const [searchMode, setSearchMode] = useState<'custom' | 'vdb_showroom'>('custom');
-  const [vdbEmbedUrl, setVdbEmbedUrl] = useState<string>('');
-  const [customUrlInput, setCustomUrlInput] = useState<string>('');
-  const [urlError, setUrlError] = useState<string | null>(null);
-  const [iframeLoading, setIframeLoading] = useState<boolean>(true);
-  const [showSettings, setShowSettings] = useState<boolean>(false);
-
   // Currency States
   const [currency, setCurrency] = useState('EU / EUR');
   const [isMounted, setIsMounted] = useState(false);
 
-  // Load searchMode and vdbEmbedUrl on mount
+  // Sync currency on mount
   useEffect(() => {
-    const savedMode = localStorage.getItem('diamond_search_mode');
-    if (savedMode === 'custom' || savedMode === 'vdb_showroom') {
-      setSearchMode(savedMode as 'custom' | 'vdb_showroom');
-    }
-
-    const defaultUrl = process.env.NEXT_PUBLIC_VDB_EMBED_URL || '';
-    const savedUrl = localStorage.getItem('vdb_showroom_url');
-    const activeUrl = savedUrl || defaultUrl || 'https://vdbapp.com/embed?apiKey=test'; // fallback demo URL
-    setVdbEmbedUrl(activeUrl);
-    setCustomUrlInput(activeUrl);
-
-    // Sync currency
     const savedCurrency = localStorage.getItem('currency');
     if (savedCurrency) setCurrency(savedCurrency);
 
@@ -127,22 +107,13 @@ function DiamondsPageContent() {
     return () => window.removeEventListener('currency-change', handleCurrencyChange);
   }, []);
 
-  // Fallback timer for iframe loading overlay to prevent click blockage if onLoad doesn't fire
-  useEffect(() => {
-    if (iframeLoading) {
-      const timer = setTimeout(() => {
-        setIframeLoading(false);
-      }, 2500);
-      return () => clearTimeout(timer);
-    }
-  }, [iframeLoading]);
-
   const formatPrice = (amount: number) => {
     const symbol = {
       'AE / AED': 'AED ',
       'GB / GBP': '£',
       'US / USD': '$',
       'EU / EUR': '€',
+      'IN / INR': '₹',
     }[currency] || '$';
 
     const rate = {
@@ -150,41 +121,11 @@ function DiamondsPageContent() {
       'GB / GBP': 0.78,
       'US / USD': 1.0,
       'EU / EUR': 0.92,
+      'IN / INR': 83.5,
     }[currency] || 1.0;
 
     const converted = amount * rate;
     return `${symbol}${converted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const handleSaveUrl = (url: string) => {
-    setUrlError(null);
-    if (!url.trim()) {
-      setUrlError('URL cannot be empty.');
-      return;
-    }
-    
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== 'https:') {
-        setUrlError('For security reasons, only secure HTTPS URLs are allowed.');
-        return;
-      }
-      
-      const domain = parsed.hostname.toLowerCase();
-      const isVdbDomain = domain === 'vdbapp.com' || domain.endsWith('.vdbapp.com');
-      
-      if (!isVdbDomain) {
-        setUrlError('Security Restriction: You can only embed official widgets from vdbapp.com.');
-        return;
-      }
-      
-      setVdbEmbedUrl(url);
-      localStorage.setItem('vdb_showroom_url', url);
-      setIframeLoading(true);
-      setShowSettings(false);
-    } catch (e) {
-      setUrlError('Invalid URL format. Please enter a valid URL.');
-    }
   };
 
   // Search filter states
@@ -454,153 +395,7 @@ function DiamondsPageContent() {
         )}
       </div>
 
-      {/* Switcher Tab Bar */}
-      <div className="flex border-b border-neutral-200">
-        <button
-          onClick={() => {
-            setSearchMode('custom');
-            localStorage.setItem('diamond_search_mode', 'custom');
-          }}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer ${
-            searchMode === 'custom'
-              ? 'border-gold-500 text-gold-700 font-bold'
-              : 'border-transparent text-neutral-400 hover:text-neutral-600'
-          }`}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-          Interactive Diamond Explorer
-        </button>
-        <button
-          onClick={() => {
-            setSearchMode('vdb_showroom');
-            localStorage.setItem('diamond_search_mode', 'vdb_showroom');
-          }}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer ${
-            searchMode === 'vdb_showroom'
-              ? 'border-gold-500 text-gold-700 font-bold'
-              : 'border-transparent text-neutral-400 hover:text-neutral-600'
-          }`}
-        >
-          <ExternalLink className="h-4 w-4" />
-          VDB Virtual Showroom (Iframe)
-        </button>
-      </div>
-
-      {searchMode === 'vdb_showroom' ? (
-        <div className="space-y-6 animate-fade-in">
-          {/* Settings Sub-Bar */}
-          <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="font-serif text-base text-neutral-900 font-bold flex items-center gap-2">
-                  <Settings className="h-4.5 w-4.5 text-gold-500" />
-                  VDB Showroom Settings
-                </h3>
-                <p className="text-[11px] text-neutral-500 mt-1 font-light leading-relaxed">
-                  Configure the URL source of your Virtual Diamond Boutique embedded iframe widget.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="px-4 py-2 text-[10px] uppercase font-bold tracking-widest border border-gold-300 text-gold-700 hover:bg-gold-50/50 bg-white rounded-lg transition-all"
-              >
-                {showSettings ? 'Hide Panel' : 'Edit Source URL'}
-              </button>
-            </div>
-
-            {showSettings && (
-              <div className="border-t border-neutral-100 pt-4 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-sans tracking-widest text-neutral-400 font-bold uppercase block">
-                    VDB Showroom Embed URL
-                  </label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. https://vdbapp.com/embed?apiKey=YOUR_API_KEY"
-                      value={customUrlInput}
-                      onChange={(e) => setCustomUrlInput(e.target.value)}
-                      className="flex-1 bg-[#faf8f5] border border-neutral-200 py-2.5 px-3 text-xs font-sans text-neutral-800 rounded-lg focus:outline-none focus:border-gold-400 focus:ring-1 focus:ring-gold-400"
-                    />
-                    <button
-                      onClick={() => handleSaveUrl(customUrlInput)}
-                      className="px-5 py-2.5 text-xs font-sans tracking-widest uppercase font-semibold gold-gradient text-white hover:gold-gradient-hover shadow-sm rounded-lg transition-all"
-                    >
-                      Save & Reload
-                    </button>
-                  </div>
-                  {urlError && (
-                    <div className="flex items-center gap-1.5 text-red-600 text-[10px] mt-1.5 bg-red-50 border border-red-150 p-2.5 rounded-lg font-sans">
-                      <ShieldAlert className="h-4 w-4 flex-shrink-0" />
-                      <span>{urlError}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-start gap-3 bg-[#faf8f5] border border-neutral-200 p-4 rounded-lg text-[11px] text-neutral-500 leading-relaxed font-light">
-                  <HelpCircle className="h-4 w-4 text-gold-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-neutral-700 uppercase tracking-wider text-[10px]">How to retrieve your Embed URL?</p>
-                    <p className="mt-1">
-                      1. Log in to your Virtual Diamond Boutique (VDB) Retailer account portal.<br />
-                      2. Under <strong>Integrations / Website Embed</strong>, select and customize your widget (theme colors, margins, markup filters).<br />
-                      3. Copy the <code>src</code> attribute URL from the provided iFrame code (e.g. starting with <code>https://vdbapp.com/embed...</code>).<br />
-                      4. Paste the URL above and save.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Showroom Frame */}
-          <div className="relative w-full border border-gold/15 rounded-2xl shadow-md overflow-hidden bg-[#faf8f5] min-h-[850px]">
-            {iframeLoading && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-xs flex flex-col items-center justify-center text-center space-y-3 z-15">
-                <span className="w-10 h-10 border-4 border-gold-400 border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs uppercase tracking-widest text-neutral-400 font-sans font-semibold">Loading Virtual Showroom...</p>
-              </div>
-            )}
-            
-            <iframe
-              src={vdbEmbedUrl}
-              onLoad={() => setIframeLoading(false)}
-              className="w-full h-[850px] border-none bg-[#faf8f5] relative z-10"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-top-navigation allow-popups-to-escape-sandbox"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </div>
-
-          {/* Integration Guide */}
-          <div className="bg-gold-50/20 border border-gold/15 rounded-xl p-6 shadow-xs space-y-4">
-            <h4 className="font-serif text-sm text-neutral-900 font-bold flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-gold-600" />
-              Configurator Integration Guide
-            </h4>
-            <p className="text-xs text-neutral-600 leading-relaxed font-light">
-              By default, the VDB iframe is self-contained. To configure a complete user journey back into your custom Ring Builder (`/configurator`), ensure you configure VDB&apos;s redirection settings:
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="bg-white/80 border border-gold/10 p-4 rounded-lg">
-                <h5 className="font-bold text-neutral-800 uppercase tracking-wider text-[9px] mb-1.5">Redirection URL Setup</h5>
-                <p className="text-neutral-500 font-light leading-relaxed">
-                  In your VDB reseller dashboard settings, set your **&quot;Choose Stone Action&quot;** target to a redirect URL pointing back to:
-                  <code className="block bg-[#faf8f5] border border-neutral-100 p-2 rounded-md font-mono mt-1.5 text-[10px] break-all">
-                    {`http://localhost:3000/configurator?diamondId=vdb-{item_id}`}
-                  </code>
-                </p>
-              </div>
-              <div className="bg-white/80 border border-gold/10 p-4 rounded-lg">
-                <h5 className="font-bold text-neutral-800 uppercase tracking-wider text-[9px] mb-1.5">Auto-Attachment Enabled</h5>
-                <p className="text-neutral-500 font-light leading-relaxed">
-                  Our customized builder automatically parses <code>diamondId</code> from the URL, queries the corresponding record from VDB or Nivoda live API providers, mounts it on the settings visualizer, and forwards the user to checkout.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 animate-fade-in">
           
           {/* Category Tabs: Natural, Lab-Grown, Coloured, Gemstones */}
           <div className="flex border-b border-neutral-200 justify-start gap-8 font-sans text-[11px] tracking-widest uppercase font-bold text-neutral-400 select-none pb-0.5">
@@ -1486,7 +1281,6 @@ function DiamondsPageContent() {
           )}
 
         </div>
-      )}
 
       {/* Compare Modal */}
       {isCompareOpen && (

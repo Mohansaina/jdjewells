@@ -3,11 +3,10 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingBag, Heart, User, Menu, X, ChevronDown, Sparkles, AlertCircle, Calendar, Phone, Globe, Check, Volume2, VolumeX } from 'lucide-react';
+import { ShoppingBag, Heart, User, Menu, X, ChevronDown, Sparkles, AlertCircle, Calendar, Phone, Globe, Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useConfigurator, DiamondShape, SettingStyle, MetalType, JewelryCategory } from '@/context/ConfiguratorContext';
 import { useToast } from '@/context/ToastContext';
-import { audio } from '@/lib/audio';
 import DiamondShapeSvg from '@/components/DiamondShapeSvg';
 import InternationalPopup from '@/components/InternationalPopup';
 
@@ -16,32 +15,6 @@ function HeaderContent() {
   const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
   const { resetConfig, setCategory, setShape, setSetting, setMetal, setStep } = useConfigurator();
   const { warning } = useToast();
-
-  const [isAudioOn, setIsAudioOn] = useState(false);
-
-  useEffect(() => {
-    const savedAudio = localStorage.getItem('is_audio_on') === 'true';
-    setIsAudioOn(savedAudio);
-  }, []);
-
-  const toggleAudio = () => {
-    const nextState = !isAudioOn;
-    setIsAudioOn(nextState);
-    localStorage.setItem('is_audio_on', String(nextState));
-    if (nextState) {
-      audio.startAmbient();
-    } else {
-      audio.stopAmbient();
-    }
-  };
-
-  const playHover = () => {
-    if (isAudioOn) audio.playHoverChime();
-  };
-
-  const playClick = () => {
-    if (isAudioOn) audio.playClickCue();
-  };
   
   const headerRef = React.useRef<HTMLDivElement>(null);
   
@@ -97,9 +70,15 @@ function HeaderContent() {
     const saved = localStorage.getItem('currency');
     if (saved) setCurrency(saved);
 
+    const handleCurrencyChange = () => {
+      const updated = localStorage.getItem('currency');
+      if (updated) setCurrency(updated);
+    };
+
     const handleOpenBooking = () => setIsBookingModalOpen(true);
     const handleOpenCart = () => setIsCartOpen(true);
     
+    window.addEventListener('currency-change', handleCurrencyChange);
     window.addEventListener('open-booking-modal', handleOpenBooking);
     window.addEventListener('open-cart-drawer', handleOpenCart);
 
@@ -111,6 +90,7 @@ function HeaderContent() {
     document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
+      window.removeEventListener('currency-change', handleCurrencyChange);
       window.removeEventListener('open-booking-modal', handleOpenBooking);
       window.removeEventListener('open-cart-drawer', handleOpenCart);
       document.removeEventListener('mousedown', handleClickOutside);
@@ -173,25 +153,21 @@ function HeaderContent() {
 
   return (
     <>
-      {/* Top Banner 3-Column Utility & Trust Bar (Inspired by The Diamond Store UK) */}
+      {/* Top Banner Utility & Trust Bar */}
       <div className="w-full bg-[#121212] text-[#e7d3a2] text-[10px] sm:text-[11px] py-2 px-4 border-b border-gold/20 z-50 relative font-sans tracking-wider uppercase">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-2 text-center items-center">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center sm:justify-between gap-x-6 gap-y-1.5 text-center">
           <div className="flex items-center justify-center gap-1.5">
             <span className="text-gold-300">🚚</span>
             <span>Free Insured Next Day Delivery</span>
           </div>
-          <div className="flex items-center justify-center gap-1.5 md:border-x border-gold/15 py-1 md:py-0">
+          <div className="flex items-center justify-center gap-1.5">
             <span className="text-emerald-400 font-bold">★ ★ ★ ★ ★</span>
             <span>Excellent 4.9/5 Trustpilot Rating</span>
-          </div>
-          <div className="flex items-center justify-center gap-1.5">
-            <span className="text-gold-300">🔄</span>
-            <span>60-Day Returns & Free Resizing</span>
           </div>
         </div>
       </div>
 
-      <header ref={headerRef} className="sticky top-0 z-40 bg-[#fcfbf9]/95 backdrop-blur-md border-b border-gold/10 transition-all duration-300">
+      <header ref={headerRef} className="sticky top-0 z-40 bg-[#fcfbf9]/80 backdrop-blur-xl border-b border-gold-400/20 transition-all duration-500 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           
           {/* DESKTOP TWO-ROW HEADER LAYOUT */}
@@ -200,20 +176,9 @@ function HeaderContent() {
             {/* ROW 1: Logo & Actions */}
             <div className="relative flex justify-between items-center py-5 border-b border-gold/5">
               
-              {/* Left Side: Currency & Help & Audio */}
+              {/* Left Side: Currency & Help */}
               <div className="flex items-center space-x-6">
                 
-                {/* Ambient Audio controller */}
-                <button
-                  onClick={() => { toggleAudio(); playClick(); }}
-                  onMouseEnter={playHover}
-                  className="flex items-center gap-1.5 text-[10px] tracking-widest font-sans font-semibold text-neutral-600 hover:text-gold-600 transition-colors uppercase cursor-pointer"
-                  title={isAudioOn ? "Mute luxury ambient soundscape" : "Play luxury ambient soundscape"}
-                >
-                  {isAudioOn ? <Volume2 className="h-3.5 w-3.5 text-gold-500 animate-pulse" /> : <VolumeX className="h-3.5 w-3.5 text-neutral-400" />}
-                  Sound: {isAudioOn ? "On" : "Off"}
-                </button>
-
                 {/* Currency dropdown selector */}
                 <div className="relative">
                   <button 
@@ -247,7 +212,7 @@ function HeaderContent() {
 
                 {/* Need Help link */}
                 <a 
-                  href="tel:+442071234567" 
+                  href="tel:+447494554171" 
                   className="flex items-center gap-1.5 text-[10px] tracking-widest font-sans font-semibold text-neutral-600 hover:text-gold-600 transition-colors uppercase"
                 >
                   <Phone className="h-3.5 w-3.5" />
@@ -261,7 +226,7 @@ function HeaderContent() {
                   <img 
                     src="/assets/images/logo.png" 
                     alt="J&D Jewellers London Monogram" 
-                    className="h-8 w-auto object-contain mb-1.5 mt-0.5 filter drop-shadow-sm group-hover:scale-105 transition-transform translate-x-[14px]"
+                    className="h-8 w-auto object-contain mb-1.5 mt-0.5 filter drop-shadow-sm group-hover:scale-105 transition-transform"
                   />
                   <span className="font-serif text-2xl tracking-[0.22em] font-light text-neutral-900 group-hover:text-gold-600 transition-colors leading-tight">
                     J&D JEWELLERS
@@ -1060,46 +1025,81 @@ function HeaderContent() {
       {/* Mobile Drawer Navigation Menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="relative w-4/5 max-w-sm bg-[#fcfbf9] h-full p-6 flex flex-col justify-between shadow-2xl border-r border-gold/10 animate-fade-in">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="relative w-4/5 max-w-sm bg-[#fcfbf9] h-full p-6 flex flex-col justify-between shadow-2xl border-r border-gold/20 animate-fade-in overflow-y-auto z-50">
             <div>
-              <div className="flex justify-between items-center pb-6 border-b border-gold/10">
-                <span className="font-serif text-lg tracking-widest text-neutral-900">NAVIGATION</span>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="text-neutral-700">
-                  <X className="h-6 w-6" />
+              <div className="flex justify-between items-center pb-5 border-b border-gold/15">
+                <div className="flex items-center gap-2">
+                  <img src="/assets/images/logo.png" alt="J&D Logo" className="h-6 w-auto" />
+                  <span className="font-serif text-base tracking-widest text-neutral-900 uppercase">J&D JEWELLERS</span>
+                </div>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="text-neutral-600 p-1 hover:text-gold-600 transition-colors">
+                  <X className="h-5.5 w-5.5" />
                 </button>
               </div>
-              <nav className="mt-8 space-y-5 text-xs font-sans tracking-widest uppercase font-medium">
+
+              {/* Mobile Quick Action Buttons */}
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsBookingModalOpen(true);
+                  }}
+                  className="py-2.5 px-3 text-[9px] uppercase font-bold tracking-widest gold-gradient text-white rounded-sm text-center shadow-xs"
+                >
+                  Book Salon
+                </button>
+                <Link
+                  href="/configurator"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="py-2.5 px-3 text-[9px] uppercase font-bold tracking-widest border border-gold-400 text-gold-700 bg-gold-50/50 rounded-sm text-center hover:bg-gold-100/50 transition-colors"
+                >
+                  Design Ring
+                </Link>
+              </div>
+
+              <nav className="mt-6 space-y-1 text-xs font-sans tracking-widest uppercase font-medium">
+                <Link
+                  href="/"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block text-neutral-800 py-3 border-b border-gold/10 hover:text-gold-600 transition-colors"
+                >
+                  Home Overview
+                </Link>
                 <Link
                   href="/diamonds"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block text-neutral-800 py-2 border-b border-gold/5"
+                  className="block text-neutral-800 py-3 border-b border-gold/10 hover:text-gold-600 transition-colors"
                 >
-                  Diamond Explorer
+                  Diamond Explorer (GIA Index)
                 </Link>
-                
-                <div className="py-2 border-b border-gold/5 space-y-2">
-                  <span className="text-neutral-400 block text-[10px]">Collections</span>
-                  <div className="pl-4 space-y-3">
-                    <Link href="/engagement-rings" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 lowercase first-letter:uppercase text-[11px]">Engagement Rings</Link>
-                    <Link href="/products?category=wedding bands" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 lowercase first-letter:uppercase text-[11px]">Wedding Rings</Link>
-                    <Link href="/products?category=rings" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 lowercase first-letter:uppercase text-[11px]">Eternity Rings</Link>
-                    <Link href="/products" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 lowercase first-letter:uppercase text-[11px]">All Fine Jewellery</Link>
+
+                <div className="py-3 border-b border-gold/10 space-y-2">
+                  <span className="text-gold-600 font-serif text-[10px] tracking-[0.2em] font-bold block uppercase">Bespoke Collections</span>
+                  <div className="pl-3 space-y-2.5 text-[11px] font-normal normal-case">
+                    <Link href="/engagement-rings" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 hover:text-gold-600 transition-colors">Engagement Rings</Link>
+                    <Link href="/products?category=wedding bands" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 hover:text-gold-600 transition-colors">Wedding Bands</Link>
+                    <Link href="/products?category=rings" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 hover:text-gold-600 transition-colors">Eternity & Statement Rings</Link>
+                    <Link href="/products?category=pendants" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 hover:text-gold-600 transition-colors">VVS Diamond Pendants</Link>
+                    <Link href="/products?category=bracelets" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 hover:text-gold-600 transition-colors">Tennis Bracelets</Link>
+                    <Link href="/products?category=custom" onClick={() => setIsMobileMenuOpen(false)} className="block text-neutral-800 hover:text-gold-600 transition-colors">Custom Gold Atelier & Grillz</Link>
+                    <Link href="/products" onClick={() => setIsMobileMenuOpen(false)} className="block text-gold-600 font-semibold uppercase text-[10px] tracking-wider pt-1">Explore Full Catalog →</Link>
                   </div>
                 </div>
 
                 <Link
                   href="/profile"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block text-neutral-800 py-2 border-b border-gold/5"
+                  className="block text-neutral-800 py-3 border-b border-gold/10 hover:text-gold-600 transition-colors"
                 >
-                  My Account
+                  My Account & Orders
                 </Link>
               </nav>
             </div>
-            <div className="pt-6 border-t border-gold/10">
-              <span className="font-serif text-sm tracking-widest text-neutral-800 block">J&D JEWELLERS</span>
-              <span className="text-[10px] text-neutral-400 font-sans tracking-wider mt-1 block">Est. 1998 • Registered GIA Dealer</span>
+
+            <div className="pt-6 border-t border-gold/15 mt-6">
+              <span className="font-serif text-xs tracking-widest text-neutral-900 block font-semibold">J&D JEWELLERS LONDON</span>
+              <span className="text-[9.5px] text-neutral-500 font-sans tracking-wider mt-1 block">Mayfair Salon • Registered GIA Dealer</span>
             </div>
           </div>
         </div>

@@ -10,52 +10,52 @@ export default function InternationalPopup() {
   const [detectedCurrencyCode, setDetectedCurrencyCode] = useState('IN / INR');
 
   useEffect(() => {
-    // Check if the user has already acknowledged or selected a currency
-    const onboardingCompleted = localStorage.getItem('currency_onboarding_completed') === 'true';
-    if (onboardingCompleted) return;
+    // Check if currency is already set
+    const savedCurrency = localStorage.getItem('currency');
 
-    // Detect visitor location using a public IP API
+    // Detect visitor location using timezone & public IP API
     const detectLocation = async () => {
       try {
+        let currencyCode = 'GB / GBP';
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+
+        if (timeZone.includes('Kolkata') || timeZone.includes('Calcutta') || timeZone.includes('India')) {
+          currencyCode = 'IN / INR';
+        } else if (timeZone.includes('London')) {
+          currencyCode = 'GB / GBP';
+        } else if (timeZone.includes('America') || timeZone.includes('New_York') || timeZone.includes('Los_Angeles') || timeZone.includes('Chicago')) {
+          currencyCode = 'US / USD';
+        } else if (timeZone.includes('Dubai') || timeZone.includes('Muscat')) {
+          currencyCode = 'AE / AED';
+        } else if (timeZone.includes('Europe')) {
+          currencyCode = 'EU / EUR';
+        }
+
+        if (!savedCurrency) {
+          localStorage.setItem('currency', currencyCode);
+          window.dispatchEvent(new Event('currency-change'));
+        }
+
+        // Background IP lookup refinement
         const res = await fetch('https://ipapi.co/json/');
         if (res.ok) {
           const data = await res.json();
-          const countryCode = data.country_code || 'IN';
-          const countryName = data.country_name || 'India';
-          
-          if (countryCode === 'IN') {
-            setDetectedCountry('India');
-            setDetectedCurrency('Indian Rupee (₹)');
-            setDetectedCurrencyCode('IN / INR');
-            setIsOpen(true);
-          } else if (countryCode === 'GB') {
-            // Keep default, don't show popup
-            localStorage.setItem('currency_onboarding_completed', 'true');
-          } else if (countryCode === 'US') {
-            setDetectedCountry('United States');
-            setDetectedCurrency('US Dollar ($)');
-            setDetectedCurrencyCode('US / USD');
-            setIsOpen(true);
-          } else if (countryCode === 'AE') {
-            setDetectedCountry('United Arab Emirates');
-            setDetectedCurrency('UAE Dirham (AED)');
-            setDetectedCurrencyCode('AE / AED');
-            setIsOpen(true);
-          } else {
-            // Other European or rest of world default to EUR
-            setDetectedCountry(countryName);
-            setDetectedCurrency('Euro (€)');
-            setDetectedCurrencyCode('EU / EUR');
-            setIsOpen(true);
+          const countryCode = data.country_code;
+          let ipCurrency = currencyCode;
+
+          if (countryCode === 'IN') ipCurrency = 'IN / INR';
+          else if (countryCode === 'GB') ipCurrency = 'GB / GBP';
+          else if (countryCode === 'US' || countryCode === 'CA') ipCurrency = 'US / USD';
+          else if (countryCode === 'AE' || countryCode === 'SA' || countryCode === 'QA') ipCurrency = 'AE / AED';
+          else if (['FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'AT', 'IE', 'PT', 'GR'].includes(countryCode)) ipCurrency = 'EU / EUR';
+
+          if (!savedCurrency && ipCurrency !== currencyCode) {
+            localStorage.setItem('currency', ipCurrency);
+            window.dispatchEvent(new Event('currency-change'));
           }
-        } else {
-          // Fallback pop up India by default for local testing
-          setIsOpen(true);
         }
       } catch (err) {
-        console.error("Location detection lookup error:", err);
-        // Fallback pop up for local testing
-        setIsOpen(true);
+        // Silent fallback to timezone detection
       }
     };
 

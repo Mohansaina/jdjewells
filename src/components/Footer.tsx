@@ -3,17 +3,43 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Mail, Check, ShieldCheck, Milestone, HelpCircle, ArrowRight } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const { success, error, warning } = useToast();
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setEmail('');
-      setTimeout(() => setSubscribed(false), 5000);
+    if (!email) return;
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (response.status === 200) {
+          warning(data.message || 'You are already subscribed!');
+        } else {
+          setSubscribed(true);
+          success(data.message || 'Successfully subscribed!');
+          setEmail('');
+          setTimeout(() => setSubscribed(false), 5000);
+        }
+      } else {
+        error(data.error || 'Failed to subscribe. Please try again.');
+      }
+    } catch (err) {
+      console.error('Newsletter subscribe error:', err);
+      error('Failed to connect to the server.');
     }
   };
 
@@ -38,7 +64,7 @@ export default function Footer() {
         </div>
         <button
           onClick={handleBookAppointment}
-          className="px-8 py-4 text-[10px] tracking-widest font-bold uppercase border border-gold-300/40 text-gold-300 hover:text-white hover:border-gold-300 bg-transparent hover:bg-gold-500/10 transition-all duration-500 flex items-center gap-2"
+          className="w-full sm:w-auto px-8 py-4 text-[10px] tracking-widest font-bold uppercase border border-gold-300/40 text-gold-300 hover:text-white hover:border-gold-300 bg-transparent hover:bg-gold-500/10 transition-all duration-500 flex items-center justify-center gap-2 cursor-pointer"
         >
           Book a Private Salon Reading <ArrowRight className="h-3.5 w-3.5" />
         </button>
@@ -151,14 +177,14 @@ export default function Footer() {
           <h4 className="font-serif text-[11px] tracking-[0.2em] text-neutral-100 uppercase">Private Salons</h4>
           <div className="space-y-4 text-[11px] font-light">
             <div>
-              <p className="text-neutral-200 font-serif font-bold">London Mayfair Boutique</p>
-              <p className="text-neutral-500 text-[10px] mt-0.5">14 Bond St, Mayfair, W1S 3SX</p>
-              <p className="text-gold-400/80 font-mono text-[9px] mt-0.5">+44 20 7946 0958</p>
-            </div>
-            <div>
-              <p className="text-neutral-200 font-serif font-bold">New York City Salon</p>
-              <p className="text-neutral-500 text-[10px] mt-0.5">645 Fifth Ave, Midtown Manhattan</p>
-              <p className="text-gold-400/80 font-mono text-[9px] mt-0.5">+1 (212) 555-0199</p>
+              <p className="text-neutral-200 font-serif font-bold">London Showroom</p>
+              <p className="text-neutral-500 text-[10px] mt-0.5">Suite 23, 2nd floor, 28 Greville St, London EC1N 8SU</p>
+              <p className="text-gold-400/80 font-mono text-[9px] mt-0.5">
+                <a href="tel:+447494554171" className="hover:text-gold-300 transition-colors">+44 7494 554171</a>
+              </p>
+              <p className="text-neutral-500 text-[10px] mt-0.5">
+                <a href="mailto:contact.jdjewellers@gmail.com" className="hover:text-gold-300 transition-colors">contact.jdjewellers@gmail.com</a>
+              </p>
             </div>
           </div>
         </div>
@@ -176,14 +202,14 @@ export default function Footer() {
               Subscribe for private collection launches, priority diamond vault access, and invitations to showroom previews.
             </p>
           </div>
-          <form onSubmit={handleSubscribe} className="relative flex items-center min-w-[280px]">
+          <form onSubmit={handleSubscribe} className="relative flex items-center w-full sm:w-auto sm:min-w-[300px]">
             <input
               type="email"
               placeholder="Enter email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-[#121212] border border-neutral-800 focus:border-gold-500/60 px-4 py-3 text-xs text-neutral-100 focus:outline-none transition-colors placeholder-neutral-600 rounded-sm"
+              className="w-full bg-[#121212] border border-neutral-800 focus:border-gold-500/60 px-4 py-3 text-xs text-neutral-100 focus:outline-none transition-colors placeholder-neutral-600 rounded-sm pr-24"
             />
             <button
               type="submit"

@@ -1,17 +1,48 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { VdbService } from '@/services/vdbService';
 import { getDbClient } from '@/lib/db';
 import { sanitizeString, validateCategory } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
-  const db = getDbClient();
+export async function GET(req: NextRequest) {
   try {
-    const products = await db.product.findMany();
-    return NextResponse.json(products);
+    const { searchParams } = new URL(req.url);
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+    
+    const metals = searchParams.get('metals') 
+      ? searchParams.get('metals')!.split(',').map(m => m.trim()).filter(Boolean) 
+      : [];
+    const shapes = searchParams.get('shapes') 
+      ? searchParams.get('shapes')!.split(',').map(s => s.trim()).filter(Boolean) 
+      : [];
+    const styles = searchParams.get('styles') 
+      ? searchParams.get('styles')!.split(',').map(s => s.trim()).filter(Boolean) 
+      : [];
+      
+    const page = parseInt(searchParams.get('page') || '1') || 1;
+    const limit = parseInt(searchParams.get('limit') || '9') || 9;
+    
+    const priceMin = searchParams.get('priceMin') ? parseFloat(searchParams.get('priceMin')!) : undefined;
+    const priceMax = searchParams.get('priceMax') ? parseFloat(searchParams.get('priceMax')!) : undefined;
+
+    const data = await VdbService.getProducts({
+      category,
+      search,
+      metals,
+      shapes,
+      styles,
+      page,
+      limit,
+      priceMin,
+      priceMax
+    });
+
+    return NextResponse.json(data);
   } catch (e) {
     console.error("API Get products failure:", e);
-    return NextResponse.json({ error: "Failed to read products" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to read products from catalog" }, { status: 500 });
   }
 }
 

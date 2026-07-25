@@ -346,7 +346,7 @@ export default function RingVisualizer({ shape, setting, metal, zoomable = true 
       onPointerCancel={handlePointerUp}
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
-      className={`relative w-full aspect-square max-w-[480px] bg-gradient-to-b from-[#faf9f6] to-[#f2efea] border border-gold/15 flex items-center justify-center overflow-hidden group shadow-inner rounded-xl touch-none select-none ${
+      className={`relative w-full aspect-square max-w-[480px] bg-transparent flex items-center justify-center overflow-hidden group touch-none select-none ${
         isDragging ? 'cursor-grabbing' : 'cursor-grab'
       }`}
     >

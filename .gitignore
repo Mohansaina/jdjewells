@@ -30,10 +30,22 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files & secrets (strictly ignored for security)
+.env
 .env*
+.env.local
+.env*.local
+*.pem
+*.key
+jwt_secret.txt
 
-# vercel
+# scratch & temporary files
+/scratch/
+/.next/
+/out/
+/build
+
+# vercel & workspace
 .vercel
 
 # typescript

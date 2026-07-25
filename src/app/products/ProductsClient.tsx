@@ -143,16 +143,30 @@ const categoryOrder = [
 ];
 
 interface ProductsClientProps {
-  products: any[];
+  initialProducts: any[];
+  initialTotalCount: number;
+  initialTotalPages: number;
   category: string | null;
   search: string | null;
 }
 
-export default function ProductsClient({ products, category, search }: ProductsClientProps) {
+export default function ProductsClient({ 
+  initialProducts, 
+  initialTotalCount, 
+  initialTotalPages, 
+  category, 
+  search 
+}: ProductsClientProps) {
   const { addToCart } = useCart();
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [currency, setCurrency] = useState('EU / EUR');
+
+  const [products, setProducts] = useState(initialProducts);
+  const [totalCount, setTotalCount] = useState(initialTotalCount);
+  const [totalPages, setTotalPages] = useState(initialTotalPages);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   // Accordion Sidebar Toggles
   const [openFilters, setOpenFilters] = useState<Record<string, boolean>>({
@@ -178,6 +192,7 @@ export default function ProductsClient({ products, category, search }: ProductsC
 
   // Sync category param from router/props
   useEffect(() => {
+    setPage(1);
     setActiveCategory(category);
     setSelectedStyles([]);
     setSelectedMetals([]);
@@ -185,24 +200,28 @@ export default function ProductsClient({ products, category, search }: ProductsC
   }, [category]);
 
   const handleToggleStyleFilter = (styleName: string) => {
+    setPage(1);
     setSelectedStyles(prev => 
       prev.includes(styleName) ? prev.filter(s => s !== styleName) : [...prev, styleName]
     );
   };
 
   const handleToggleShapeFilter = (shapeName: string) => {
+    setPage(1);
     setSelectedShapes(prev => 
       prev.includes(shapeName) ? prev.filter(s => s !== shapeName) : [...prev, shapeName]
     );
   };
 
   const handleToggleMetalFilter = (metalName: string) => {
+    setPage(1);
     setSelectedMetals(prev => 
       prev.includes(metalName) ? prev.filter(m => m !== metalName) : [...prev, metalName]
     );
   };
 
   const handleClearAllFilters = () => {
+    setPage(1);
     setSelectedStyles([]);
     setSelectedMetals([]);
     setSelectedShapes([]);
@@ -210,20 +229,65 @@ export default function ProductsClient({ products, category, search }: ProductsC
   };
 
   const handleSelectCategory = (catKey: string | null) => {
+    setPage(1);
     setActiveCategory(catKey);
     setSelectedStyles([]);
     setSelectedMetals([]);
     setSelectedShapes([]);
   };
 
+  // Dynamic API Fetch Effect
   useEffect(() => {
-    const timer = setInterval(() => {
-      const currentIndex = categoryOrder.findIndex(cat => cat.key === activeCategory);
-      const nextIndex = (currentIndex + 1) % categoryOrder.length;
-      handleSelectCategory(categoryOrder[nextIndex].key);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [activeCategory]);
+    let active = true;
+
+    // Check if it matches initial state on mount
+    const isInitial = page === 1 &&
+      activeCategory === category &&
+      selectedMetals.length === 0 &&
+      selectedShapes.length === 0 &&
+      selectedStyles.length === 0;
+
+    if (isInitial) {
+      setProducts(initialProducts);
+      setTotalCount(initialTotalCount);
+      setTotalPages(initialTotalPages);
+      return;
+    }
+
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          page: page.toString(),
+          limit: '9'
+        });
+        if (activeCategory) queryParams.append('category', activeCategory);
+        if (search) queryParams.append('search', search);
+        if (selectedMetals.length > 0) queryParams.append('metals', selectedMetals.join(','));
+        if (selectedShapes.length > 0) queryParams.append('shapes', selectedShapes.join(','));
+        if (selectedStyles.length > 0) queryParams.append('styles', selectedStyles.join(','));
+
+        const res = await fetch(`/api/products?${queryParams.toString()}`);
+        if (res.ok && active) {
+          const data = await res.json();
+          setProducts(data.products || []);
+          setTotalCount(data.totalCount || 0);
+          setTotalPages(data.totalPages || 1);
+        }
+      } catch (err) {
+        console.error("[Products Client] Dynamic fetch failed:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    fetchProducts();
+    return () => {
+      active = false;
+    };
+  }, [activeCategory, selectedMetals, selectedShapes, selectedStyles, page, search]);
+
+
 
   // Helper matching functions
   const getProductStyle = (prod: any): string => {
@@ -278,39 +342,7 @@ export default function ProductsClient({ products, category, search }: ProductsC
     }
   };
 
-  const filteredProducts = products.filter((prod: any) => {
-    if (activeCategory) {
-      const cat = prod.category ? prod.category.toLowerCase() : '';
-      if (cat !== activeCategory.toLowerCase()) return false;
-    }
-    if (search) {
-      const q = search.toLowerCase();
-      const matches = 
-        prod.title.toLowerCase().includes(q) || 
-        (prod.description && prod.description.toLowerCase().includes(q)) ||
-        (prod.material && prod.material.toLowerCase().includes(q));
-      if (!matches) return false;
-    }
-    if (selectedStyles.length > 0) {
-      const style = getProductStyle(prod);
-      const matched = selectedStyles.some(sel => {
-        const selLower = sel.toLowerCase();
-        return style.includes(selLower) || prod.title.toLowerCase().includes(selLower);
-      });
-      if (!matched) return false;
-    }
-    if (selectedMetals.length > 0) {
-      const metal = getProductMetal(prod);
-      const matched = selectedMetals.some(sel => metal.includes(sel.toLowerCase()));
-      if (!matched) return false;
-    }
-    if (selectedShapes.length > 0) {
-      const shape = getProductShape(prod);
-      const matched = selectedShapes.some(sel => shape.includes(sel.toLowerCase()) || prod.title.toLowerCase().includes(sel.toLowerCase()));
-      if (!matched) return false;
-    }
-    return true;
-  });
+  // Note: Filtering is handled server-side/service-side dynamically
 
   const defaultSubcategories = [
     { name: 'Engagement Rings', desc: 'Solitaire, halo, vintage, and trilogy settings.', href: '/products?category=engagement rings', image: '/assets/images/500288698_1229972801842035_6145526371360903892_n.jpg', key: 'engagement rings' },
@@ -401,36 +433,36 @@ export default function ProductsClient({ products, category, search }: ProductsC
     <div className="space-y-0 pb-20 relative">
       
       {/* === HERO BANNER === */}
-      <div className="relative w-full h-[45vh] min-h-[280px] bg-neutral-950 overflow-hidden flex items-center">
+      <div className="relative w-full min-h-[380px] sm:h-[45vh] sm:min-h-[360px] bg-neutral-950 overflow-hidden flex items-center py-10 sm:py-0">
         {/* Slideshow background */}
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-50 mix-blend-luminosity transition-all duration-1000 ease-in-out transform scale-102"
           style={{ backgroundImage: `url('${details.image}')` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/60 to-transparent z-10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/60 via-transparent to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/70 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-transparent z-10" />
         
-        <div className="relative z-20 max-w-7xl mx-auto w-full px-6 sm:px-12 space-y-4 text-left">
-          <span className="text-[10px] tracking-[0.5em] text-gold-300 uppercase block font-bold transition-all duration-500">
+        <div className="relative z-20 max-w-7xl mx-auto w-full px-6 sm:px-12 space-y-3 sm:space-y-4 text-left pb-8 sm:pb-0">
+          <span className="text-[9px] sm:text-[10px] tracking-[0.4em] sm:tracking-[0.5em] text-gold-300 uppercase block font-bold transition-all duration-500">
             {details.subtitle}
           </span>
-          <h1 className="font-serif text-4xl sm:text-5xl text-white tracking-widest uppercase font-light leading-tight transition-all duration-500">
+          <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl text-white tracking-widest uppercase font-light leading-tight transition-all duration-500">
             {details.title}
           </h1>
-          <p className="text-neutral-300 font-sans text-sm tracking-wide font-light leading-relaxed max-w-lg transition-all duration-500">
+          <p className="text-neutral-300 font-sans text-xs sm:text-sm tracking-wide font-light leading-relaxed max-w-lg transition-all duration-500 line-clamp-2 sm:line-clamp-none">
             {details.desc}
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-2.5 pt-1 sm:pt-2">
             <Link
               href="/configurator"
-              className="inline-flex items-center gap-2 px-6 py-3 text-xs font-sans tracking-widest uppercase font-semibold gold-gradient text-white hover:opacity-90 shadow-md transition-all"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[10px] sm:text-xs font-sans tracking-widest uppercase font-semibold gold-gradient text-white hover:opacity-90 shadow-md transition-all text-center rounded-xs"
             >
               <Sparkles className="h-3.5 w-3.5" /> Design Custom Piece
             </Link>
             {activeCategory && (
               <button
                 onClick={() => handleSelectCategory(null)}
-                className="inline-flex items-center gap-2 px-6 py-3 text-xs font-sans tracking-widest uppercase font-semibold border border-white/30 text-white hover:border-gold-300 hover:text-gold-300 transition-all cursor-pointer bg-transparent"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[10px] sm:text-xs font-sans tracking-widest uppercase font-semibold border border-white/30 text-white hover:border-gold-300 hover:text-gold-300 transition-all cursor-pointer bg-transparent text-center rounded-xs"
               >
                 All Collections <ArrowRight className="h-3.5 w-3.5" />
               </button>
@@ -446,10 +478,10 @@ export default function ProductsClient({ products, category, search }: ProductsC
               const prevIndex = (currentIndex - 1 + categoryOrder.length) % categoryOrder.length;
               handleSelectCategory(categoryOrder[prevIndex].key);
             }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-neutral-950/40 hover:bg-neutral-900/80 text-white border border-white/10 rounded-full transition-all focus:outline-none cursor-pointer"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 p-1.5 sm:p-2 bg-neutral-950/50 hover:bg-neutral-900/80 text-white border border-white/10 rounded-full transition-all focus:outline-none cursor-pointer"
             aria-label="Previous category"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
           <button
             onClick={() => {
@@ -457,21 +489,21 @@ export default function ProductsClient({ products, category, search }: ProductsC
               const nextIndex = (currentIndex + 1) % categoryOrder.length;
               handleSelectCategory(categoryOrder[nextIndex].key);
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 bg-neutral-950/40 hover:bg-neutral-900/80 text-white border border-white/10 rounded-full transition-all focus:outline-none cursor-pointer"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 p-1.5 sm:p-2 bg-neutral-950/50 hover:bg-neutral-900/80 text-white border border-white/10 rounded-full transition-all focus:outline-none cursor-pointer"
             aria-label="Next category"
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
 
           {/* Category Pagination Indicators */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex space-x-2">
+          <div className="absolute bottom-2.5 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 flex space-x-1.5 sm:space-x-2">
             {categoryOrder.map((cat, idx) => {
               const isActive = cat.key === activeCategory;
               return (
                 <button
                   key={idx}
                   onClick={() => handleSelectCategory(cat.key)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer ${isActive ? 'bg-gold-500 w-6' : 'bg-white/40'}`}
+                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${isActive ? 'bg-gold-500 w-5 sm:w-6' : 'bg-white/40 w-1.5'}`}
                   title={cat.title}
                 />
               );
@@ -645,7 +677,7 @@ export default function ProductsClient({ products, category, search }: ProductsC
                 </h2>
               </div>
               <span className="text-[10px] font-sans text-neutral-400 font-light">
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'piece' : 'pieces'} matches
+                {totalCount} {totalCount === 1 ? 'piece' : 'pieces'} matches
               </span>
             </div>
 
@@ -695,9 +727,27 @@ export default function ProductsClient({ products, category, search }: ProductsC
               </div>
             )}
 
-            {/* Product card grid */}
-            {filteredProducts.length === 0 ? (
-              <div className="border border-dashed border-gold-300/40 p-12 text-center space-y-4 rounded bg-gold-50/10">
+            {/* Skeletons or Product grid */}
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div key={idx} className="border border-gold-200/20 p-4 space-y-4 rounded animate-pulse bg-white flex flex-col justify-between">
+                    <div className="aspect-square bg-neutral-100 rounded flex items-center justify-center">
+                      <div className="w-10 h-10 border border-neutral-200/50 rounded-full border-t-gold-500 animate-spin" />
+                    </div>
+                    <div className="space-y-2 pt-2">
+                      <div className="h-4 bg-neutral-150 rounded w-3/4" />
+                      <div className="h-3 bg-neutral-100 rounded w-1/2" />
+                    </div>
+                    <div className="pt-4 border-t border-neutral-50 flex gap-2">
+                      <div className="h-8 bg-neutral-200 rounded flex-1" />
+                      <div className="h-8 bg-neutral-100 rounded flex-1" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : products.length === 0 ? (
+              <div className="border border-dashed border-gold-300/40 p-12 text-center space-y-4 rounded bg-gold-50/10 animate-fade-in">
                 <ShieldAlert className="h-10 w-10 text-gold-500/80 mx-auto stroke-[1.2]" />
                 <div>
                   <p className="font-serif text-lg text-neutral-800 tracking-wide">No Perfect Match Found</p>
@@ -719,141 +769,182 @@ export default function ProductsClient({ products, category, search }: ProductsC
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredProducts.map((prod: any) => {
-                  let styleName = 'Solitaire';
-                  try {
-                    const sp = JSON.parse(prod.specs);
-                    if (sp.setting) styleName = sp.setting;
-                  } catch (e) {}
+              <div className="space-y-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 animate-fade-in">
+                  {products.map((prod: any) => {
+                    let styleName = 'Solitaire';
+                    try {
+                      const sp = JSON.parse(prod.specs);
+                      if (sp.setting) styleName = sp.setting;
+                    } catch (e) {}
 
-                  const handleAddProductToBag = (p: any) => {
-                    addToCart({
-                      productId: p.id,
-                      productTitle: p.title,
-                      price: p.price,
-                      productImage: p.image,
-                      diamondSpec: p.material
-                    });
-                    setToastMessage(`${p.title} added to shopping bag.`);
-                    setShowToast(true);
-                    setTimeout(() => setShowToast(false), 3500);
-                  };
+                    const handleAddProductToBag = (p: any) => {
+                      addToCart({
+                        productId: p.id,
+                        productTitle: p.title,
+                        price: p.price,
+                        productImage: p.image,
+                        diamondSpec: p.material
+                      });
+                      setToastMessage(`${p.title} added to shopping bag.`);
+                      setShowToast(true);
+                      setTimeout(() => setShowToast(false), 3500);
+                    };
 
-                  return (
-                    <div
-                      key={prod.id}
-                      className="group bg-white border border-gold-200/30 flex flex-col justify-between hover:shadow-[0_15px_35px_rgba(197,160,41,0.08)] hover:-translate-y-1 hover:border-gold-300/60 transition-all duration-500 relative rounded overflow-hidden"
-                    >
-                      {/* Clickable Image Area */}
-                      <Link
-                        href={`/products/${prod.id}`}
-                        id={`product-image-${prod.id}`}
-                        className="aspect-square bg-gradient-to-b from-[#faf9f6]/40 to-[#f2efea]/40 border-b border-gold/10 p-6 flex items-center justify-center overflow-hidden cursor-pointer relative"
+                    return (
+                      <div
+                        key={prod.id}
+                        className="group bg-white border border-gold-200/30 flex flex-col justify-between hover:shadow-[0_15px_35px_rgba(197,160,41,0.08)] hover:-translate-y-1 hover:border-gold-300/60 transition-all duration-500 relative rounded overflow-hidden"
                       >
-                        <img
-                          src={prod.image}
-                          alt={prod.title}
-                          className="max-w-[85%] max-h-[85%] object-contain group-hover:scale-105 transition-transform duration-500 filter drop-shadow-md"
-                        />
-                        
-                        {/* Insured Shipping Tag */}
-                        <span className="absolute top-3 left-3 text-[7.5px] uppercase font-sans tracking-widest font-bold bg-white/90 border border-gold-300/30 text-gold-700 px-2 py-0.5 rounded shadow-xs backdrop-blur-xs">
-                          Free Insured Delivery
-                        </span>
-
-                        {/* Premium Hover Overlay */}
-                        <div className="absolute inset-0 bg-[#07090e]/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                          <span className="px-4 py-2 bg-white/90 text-neutral-900 text-[9px] uppercase font-bold tracking-widest border border-gold-400/20 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                            Explore Masterpiece
+                        {/* Clickable Image Area */}
+                        <Link
+                          href={`/products/${prod.id}`}
+                          id={`product-image-${prod.id}`}
+                          className="aspect-square bg-gradient-to-b from-[#faf9f6]/40 to-[#f2efea]/40 border-b border-gold/10 p-6 flex items-center justify-center overflow-hidden cursor-pointer relative"
+                        >
+                          <img
+                            src={prod.image}
+                            alt={prod.title}
+                            className="max-w-[85%] max-h-[85%] object-contain group-hover:scale-105 transition-transform duration-500 filter drop-shadow-md"
+                          />
+                          
+                          {/* Insured Shipping Tag */}
+                          <span className="absolute top-3 left-3 text-[7.5px] uppercase font-sans tracking-widest font-bold bg-white/90 border border-gold-300/30 text-gold-700 px-2 py-0.5 rounded shadow-xs backdrop-blur-xs">
+                            Free Insured Delivery
                           </span>
-                        </div>
-                      </Link>
 
-                      {/* Info panel */}
-                      <div className="p-4.5 flex-1 flex flex-col justify-between space-y-3 bg-white">
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-baseline gap-2">
-                            <h3 className="font-serif text-sm text-neutral-900 font-medium">
+                          {/* Premium Hover Overlay */}
+                          <div className="absolute inset-0 bg-[#07090e]/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <span className="px-4 py-2 bg-white/90 text-neutral-900 text-[9px] uppercase font-bold tracking-widest border border-gold-400/20 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                              Explore Masterpiece
+                            </span>
+                          </div>
+                        </Link>
+
+                        {/* Info panel */}
+                        <div className="p-4.5 flex-1 flex flex-col justify-between space-y-3 bg-white">
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-baseline gap-2">
+                              <h3 className="font-serif text-sm text-neutral-900 font-medium">
+                                <Link
+                                  href={`/products/${prod.id}`}
+                                  className="group-hover:text-gold-600 transition-colors cursor-pointer"
+                                  id={`product-title-${prod.id}`}
+                                >
+                                  {prod.title}
+                                </Link>
+                              </h3>
+                              <span className="text-xs font-serif font-bold text-neutral-900 flex-shrink-0">{formatPrice(prod.price)}</span>
+                            </div>
+                            <p className="text-[8.5px] text-neutral-400 font-sans uppercase tracking-[0.15em]">
+                              {prod.material}
+                            </p>
+                          </div>
+
+                          {/* Rating & Reviews */}
+                          <div className="flex items-center gap-1 text-[10px] text-neutral-500 font-sans">
+                            <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
+                            <span className="font-bold text-neutral-800">{prod.rating}</span>
+                            <span className="font-light">({prod.reviewsCount} reviews)</span>
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex flex-col gap-2 pt-2 border-t border-gold/5 mt-auto">
+                            <button
+                              onClick={() => handleAddProductToBag(prod)}
+                              className="w-full py-2.5 text-[9px] uppercase tracking-widest font-bold gold-gradient text-white text-center hover:opacity-95 transition-opacity rounded-xs shadow-xs cursor-pointer"
+                              id={`add-catalog-bag-${prod.id}`}
+                            >
+                              Add to Bag
+                            </button>
+
+                            <div className="grid grid-cols-2 gap-2">
                               <Link
                                 href={`/products/${prod.id}`}
-                                className="group-hover:text-gold-600 transition-colors cursor-pointer"
-                                id={`product-title-${prod.id}`}
+                                className="py-2 text-[9px] uppercase tracking-widest font-bold border border-neutral-200 text-neutral-700 bg-neutral-50 hover:bg-neutral-900 hover:text-white hover:border-neutral-900 text-center rounded-xs transition-colors"
+                                id={`details-catalog-${prod.id}`}
                               >
-                                {prod.title}
+                                Details
                               </Link>
-                            </h3>
-                            <span className="text-xs font-serif font-bold text-neutral-900 flex-shrink-0">{formatPrice(prod.price)}</span>
-                          </div>
-                          <p className="text-[8.5px] text-neutral-400 font-sans uppercase tracking-[0.15em]">
-                            {prod.material}
-                          </p>
-                        </div>
-
-                        {/* Rating & Reviews */}
-                        <div className="flex items-center gap-1 text-[10px] text-neutral-500 font-sans">
-                          <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
-                          <span className="font-bold text-neutral-800">{prod.rating}</span>
-                          <span className="font-light">({prod.reviewsCount} reviews)</span>
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex flex-col gap-2 pt-2 border-t border-gold/5 mt-auto">
-                          <button
-                            onClick={() => handleAddProductToBag(prod)}
-                            className="w-full py-2.5 text-[9px] uppercase tracking-widest font-bold gold-gradient text-white text-center hover:opacity-95 transition-opacity rounded-xs shadow-xs cursor-pointer"
-                            id={`add-catalog-bag-${prod.id}`}
-                          >
-                            Add to Bag
-                          </button>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <Link
-                              href={`/products/${prod.id}`}
-                              className="py-2 text-[9px] uppercase tracking-widest font-bold border border-neutral-200 text-neutral-700 bg-neutral-50 hover:bg-neutral-900 hover:text-white hover:border-neutral-900 text-center rounded-xs transition-colors"
-                              id={`details-catalog-${prod.id}`}
-                            >
-                              Details
-                            </Link>
-                            {prod.category === 'engagement rings' ? (
-                              <Link
-                                href={`/configurator?category=Engagement%20Rings&setting=${styleName}&metal=${encodeURIComponent(prod.material)}&step=4`}
-                                className="py-2 text-[9px] uppercase tracking-widest font-bold bg-white border border-gold/25 text-gold-700 hover:bg-gold-500 hover:text-white hover:border-gold-500 text-center rounded-xs transition-all"
-                                id={`customize-catalog-${prod.id}`}
-                              >
-                                Customize
-                              </Link>
-                            ) : prod.category === 'wedding bands' ? (
-                              <Link
-                                href={`/configurator?category=Wedding%20Bands&setting=${styleName}&metal=${encodeURIComponent(prod.material)}&step=4`}
-                                className="py-2 text-[9px] uppercase tracking-widest font-bold bg-white border border-gold/25 text-gold-700 hover:bg-gold-500 hover:text-white hover:border-gold-500 text-center rounded-xs transition-all"
-                                id={`customize-catalog-${prod.id}`}
-                              >
-                                Customize
-                              </Link>
-                            ) : prod.category === 'rings' ? (
-                              <Link
-                                href={`/configurator?category=Rings&setting=${styleName}&metal=${encodeURIComponent(prod.material)}&step=4`}
-                                className="py-2 text-[9px] uppercase tracking-widest font-bold bg-white border border-gold/25 text-gold-700 hover:bg-gold-500 hover:text-white hover:border-gold-500 text-center rounded-xs transition-all"
-                                id={`customize-catalog-${prod.id}`}
-                              >
-                                Customize
-                              </Link>
-                            ) : (
-                              <Link
-                                href={`/configurator?category=Custom%20Jewelry&step=3`}
-                                className="py-2 text-[9px] uppercase tracking-widest font-bold bg-white border border-gold/25 text-gold-700 hover:bg-gold-500 hover:text-white hover:border-gold-500 text-center rounded-xs transition-all"
-                                id={`customize-catalog-${prod.id}`}
-                              >
-                                Bespoke
-                              </Link>
-                            )}
+                              {prod.category === 'engagement rings' ? (
+                                <Link
+                                  href={`/configurator?category=Engagement%20Rings&setting=${styleName}&metal=${encodeURIComponent(prod.material)}&step=4`}
+                                  className="py-2 text-[9px] uppercase tracking-widest font-bold bg-white border border-gold/25 text-gold-700 hover:bg-gold-500 hover:text-white hover:border-gold-500 text-center rounded-xs transition-all"
+                                  id={`customize-catalog-${prod.id}`}
+                                >
+                                  Customize
+                                </Link>
+                              ) : prod.category === 'wedding bands' ? (
+                                <Link
+                                  href={`/configurator?category=Wedding%20Bands&setting=${styleName}&metal=${encodeURIComponent(prod.material)}&step=4`}
+                                  className="py-2 text-[9px] uppercase tracking-widest font-bold bg-white border border-gold/25 text-gold-700 hover:bg-gold-500 hover:text-white hover:border-gold-500 text-center rounded-xs transition-all"
+                                  id={`customize-catalog-${prod.id}`}
+                                >
+                                  Customize
+                                </Link>
+                              ) : prod.category === 'rings' ? (
+                                <Link
+                                  href={`/configurator?category=Rings&setting=${styleName}&metal=${encodeURIComponent(prod.material)}&step=4`}
+                                  className="py-2 text-[9px] uppercase tracking-widest font-bold bg-white border border-gold/25 text-gold-700 hover:bg-gold-500 hover:text-white hover:border-gold-500 text-center rounded-xs transition-all"
+                                  id={`customize-catalog-${prod.id}`}
+                                >
+                                  Customize
+                                </Link>
+                              ) : (
+                                <Link
+                                  href={`/configurator?category=Custom%20Jewelry&step=3`}
+                                  className="py-2 text-[9px] uppercase tracking-widest font-bold bg-white border border-gold/25 text-gold-700 hover:bg-gold-500 hover:text-white hover:border-gold-500 text-center rounded-xs transition-all"
+                                  id={`customize-catalog-${prod.id}`}
+                                >
+                                  Bespoke
+                                </Link>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center space-x-2 pt-10 border-t border-gold/10">
+                    <button
+                      onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                      disabled={page === 1}
+                      className="px-4 py-2 text-[10px] font-sans tracking-widest uppercase font-semibold border border-neutral-200 text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors flex items-center gap-1 rounded-xs cursor-pointer bg-white"
+                    >
+                      <ChevronLeft className="h-3 w-3" /> Prev
+                    </button>
+                    
+                    {Array.from({ length: totalPages }).map((_, idx) => {
+                      const pNum = idx + 1;
+                      const isActive = pNum === page;
+                      return (
+                        <button
+                          key={pNum}
+                          onClick={() => setPage(pNum)}
+                          className={`w-8 h-8 text-[10px] font-sans font-bold flex items-center justify-center border transition-all rounded-xs cursor-pointer ${
+                            isActive
+                              ? 'border-gold-500 bg-gold-500/10 text-gold-700 font-bold'
+                              : 'border-neutral-200 text-neutral-600 hover:border-gold-300 hover:text-gold-600 bg-white'
+                          }`}
+                        >
+                          {pNum}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={page === totalPages}
+                      className="px-4 py-2 text-[10px] font-sans tracking-widest uppercase font-semibold border border-neutral-200 text-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors flex items-center gap-1 rounded-xs cursor-pointer bg-white"
+                    >
+                      Next <ChevronRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </main>

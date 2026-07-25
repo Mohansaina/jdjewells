@@ -655,6 +655,7 @@ interface SchemaState {
   diamonds: any[];
   orders: any[];
   configurations: any[];
+  newsletterSubscribers?: any[];
 }
 
 // Ensure the local JSON DB file exists with basic seed data
@@ -676,7 +677,8 @@ function initLocalDb(): SchemaState {
       reviews: SEED_REVIEWS,
       diamonds: [], // Preloaded VDB mock diamonds will populate here if needed
       orders: [],
-      configurations: []
+      configurations: [],
+      newsletterSubscribers: []
     };
     safeWriteFile(dbPath, JSON.stringify(defaultData, null, 2));
     return defaultData;
@@ -709,7 +711,7 @@ function initLocalDb(): SchemaState {
   } catch (e) {
     console.error("Failed to read local DB, resetting:", e);
     // Overwrite with empty structure to prevent crashes
-    const defaultData = { users: [], products: SEED_PRODUCTS, reviews: SEED_REVIEWS, diamonds: [], orders: [], configurations: [] };
+    const defaultData = { users: [], products: SEED_PRODUCTS, reviews: SEED_REVIEWS, diamonds: [], orders: [], configurations: [], newsletterSubscribers: [] };
     safeWriteFile(dbPath, JSON.stringify(defaultData, null, 2));
     return defaultData;
   }
@@ -902,6 +904,34 @@ class MockPrismaClient {
       return newConfig;
     }
   };
+
+  public newsletterSubscriber = {
+    findMany: async (args?: any) => {
+      const subs = this.data.newsletterSubscribers || [];
+      if (args?.orderBy?.createdAt === 'desc') {
+        return [...subs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
+      return subs;
+    },
+    findUnique: async ({ where }: { where: { email: string } }) => {
+      const subs = this.data.newsletterSubscribers || [];
+      return subs.find((s: any) => s.email === where.email) || null;
+    },
+    create: async ({ data }: { data: { email: string } }) => {
+      const state = this.data;
+      if (!state.newsletterSubscribers) {
+        state.newsletterSubscribers = [];
+      }
+      const newSub = {
+        id: `sub-${Date.now()}`,
+        email: data.email,
+        createdAt: new Date().toISOString()
+      };
+      state.newsletterSubscribers.push(newSub);
+      this.data = state;
+      return newSub;
+    }
+  };
 }
 
 class DatabaseProxy {
@@ -914,11 +944,47 @@ class DatabaseProxy {
     this.mock = new MockPrismaClient();
   }
 
+  public async $transaction(actions: any) {
+    if (this.useMock) {
+      if (typeof actions === 'function') {
+        return actions(this.mock);
+      }
+      return actions;
+    }
+    try {
+      if (typeof actions === 'function') {
+        return await this.prisma.$transaction(async (tx) => {
+          return actions(tx);
+        });
+      }
+      return await this.prisma.$transaction(actions);
+    } catch (error: any) {
+      const isConnectionError = 
+        error.code === 'P1001' || 
+        error.code === 'P1002' || 
+        error.code === 'P1003' ||
+        error.message?.includes("Can't reach database server") ||
+        error.message?.includes("failed to connect") ||
+        error.message?.includes("Timed out");
+
+      if (isConnectionError) {
+        console.warn(`[Database Failover] Transaction failed, switching to local offline DB.`);
+        this.useMock = true;
+        if (typeof actions === 'function') {
+          return actions(this.mock);
+        }
+        return actions;
+      }
+      throw error;
+    }
+  }
+
   public get product() { return this.wrap('product'); }
   public get order() { return this.wrap('order'); }
   public get review() { return this.wrap('review'); }
   public get diamond() { return this.wrap('diamond'); }
   public get configuration() { return this.wrap('configuration'); }
+  public get newsletterSubscriber() { return this.wrap('newsletterSubscriber'); }
 
   private wrap(modelName: string) {
     const prismaModel = (this.prisma as any)[modelName];
@@ -936,6 +1002,11 @@ class DatabaseProxy {
           try {
             return await originalMethod.apply(target, args);
           } catch (error: any) {
+            console.error("[Database Proxy Error details]:", {
+              message: error.message,
+              code: error.code,
+              meta: error.meta
+            });
             const isConnectionError = 
               error.code === 'P1001' || 
               error.code === 'P1002' || 

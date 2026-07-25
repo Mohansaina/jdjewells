@@ -11,9 +11,8 @@ export default function Preloader() {
   useEffect(() => {
     setMounted(true);
 
-    // Check if the website has already been loaded in this browser session
-    const hasLoadedThisSession = sessionStorage.getItem('jd_jewel_loaded');
-    if (hasLoadedThisSession === 'true') {
+    const hasLoaded = sessionStorage.getItem('jd_jewel_loaded');
+    if (hasLoaded === 'true') {
       setShowLoader(false);
       return;
     }

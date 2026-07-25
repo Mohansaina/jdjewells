@@ -250,17 +250,17 @@ h1, h2, h3, h4, h5, h6, .font-serif {
 /* Falling particles animation keyframes */
 @keyframes fallDownHero {
   0% {
-    transform: translateY(-50px) rotate(0deg) scale(0.3);
+    transform: translateY(-30px) rotate(0deg) scale(0.4);
     opacity: 0;
   }
   10% {
-    opacity: 0.7;
+    opacity: 0.6;
   }
   90% {
-    opacity: 0.7;
+    opacity: 0.6;
   }
   100% {
-    transform: translateY(105vh) rotate(720deg) scale(1.1);
+    transform: translateY(100%) rotate(360deg) scale(1);
     opacity: 0;
   }
 }
@@ -355,14 +355,7 @@ h1, h2, h3, h4, h5, h6, .font-serif {
   animation: fadeIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* Scroll reveal helper class */
 .reveal-on-scroll {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reveal-on-scroll.active {
   opacity: 1;
   transform: translateY(0);
 }
@@ -481,4 +474,28 @@ input[type="range"].luxury-slider::-moz-range-thumb:hover {
 
 .animate-visualizer-reveal {
   animation: visualizerReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Glassmorphism Luxury Utilities */
+.glass-panel-dark {
+  background: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(197, 160, 41, 0.15);
+}
+
+.glass-panel-light {
+  background: rgba(252, 251, 249, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(197, 160, 41, 0.1);
+}
+
+.gold-glow-hover {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gold-glow-hover:hover {
+  box-shadow: 0 0 25px 3px rgba(197, 160, 41, 0.25);
+  border-color: rgba(197, 160, 41, 0.45);
 }

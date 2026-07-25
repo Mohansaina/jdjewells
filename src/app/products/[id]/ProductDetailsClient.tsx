@@ -104,6 +104,7 @@ interface ProductDetailsClientProps {
     reviewsCount: number;
     specs: string; // JSON string
     care?: string;
+    videoUrl?: string;
   };
   reviews: {
     id: string;
@@ -138,6 +139,7 @@ export default function ProductDetailsClient({ product, reviews: initialReviews 
       'GB / GBP': '£',
       'US / USD': '$',
       'EU / EUR': '€',
+      'IN / INR': '₹',
     }[currency] || '$';
 
     const rate = {
@@ -145,6 +147,7 @@ export default function ProductDetailsClient({ product, reviews: initialReviews 
       'GB / GBP': 0.78,
       'US / USD': 1.0,
       'EU / EUR': 0.92,
+      'IN / INR': 83.5,
     }[currency] || 1.0;
 
     const converted = amount * rate;
@@ -306,36 +309,18 @@ export default function ProductDetailsClient({ product, reviews: initialReviews 
             ref={visualizerRef}
             draggable={false}
             onDragStart={(e) => e.preventDefault()}
-            className={`relative w-full aspect-square border border-gold/15 flex items-center justify-center overflow-hidden shadow-inner group select-none touch-none transition-colors duration-300 ${
-              is360Active ? 'bg-white' : 'bg-gradient-to-b from-[#faf9f6] to-[#f2efea]'
-            }`}
+            className={`relative w-full max-w-[440px] aspect-[4/5] border border-gold-400/20 rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl group select-none touch-none transition-colors duration-300 bg-gradient-to-b from-[#faf8f5] to-[#f2ede0]`}
           >
             
             {!is360Active ? (
-              <div className="relative w-[80%] h-[80%] flex items-center justify-center pointer-events-none select-none">
+              <div className="relative w-full h-full p-3 flex items-center justify-center pointer-events-none select-none">
                 <img
                   src={activeImage}
                   alt={product.title}
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
-                  className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105 filter drop-shadow-md select-none"
-                  style={{ mixBlendMode: 'multiply' }}
+                  className="w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-103 filter drop-shadow-md select-none"
                 />
-                <div 
-                  className="absolute top-[80%] left-[10%] w-[80%] h-[35%] opacity-10 overflow-hidden scale-y-[-1] pointer-events-none select-none blur-[0.5px]"
-                  style={{
-                    WebkitMaskImage: 'linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.8))',
-                    maskImage: 'linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.8))',
-                  }}
-                >
-                  <img
-                    src={activeImage}
-                    alt="reflection"
-                    draggable={false}
-                    onDragStart={(e) => e.preventDefault()}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
               </div>
             ) : (
               // 360 degree vector simulated view
@@ -352,7 +337,7 @@ export default function ProductDetailsClient({ product, reviews: initialReviews 
               >
                 {/* 2D Container wrapping only the image and sheen overlay (translates and tilts sideways inside the card) */}
                 <div 
-                  className="relative w-[80%] h-[80%] flex items-center justify-center pointer-events-none select-none"
+                  className="relative w-full h-full p-3 flex items-center justify-center pointer-events-none select-none"
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
                   style={{
@@ -367,28 +352,8 @@ export default function ProductDetailsClient({ product, reviews: initialReviews 
                     alt={product.title}
                     draggable={false}
                     onDragStart={(e) => e.preventDefault()}
-                    className="max-w-full max-h-full object-contain filter drop-shadow-lg select-none"
-                    style={{
-                      mixBlendMode: 'multiply'
-                    }}
+                    className="w-full h-full object-cover rounded-2xl filter drop-shadow-lg select-none"
                   />
-
-                  {/* Ground reflection with gradient mask */}
-                  <div 
-                    className="absolute top-[80%] left-[10%] w-[80%] h-[35%] opacity-15 overflow-hidden scale-y-[-1] pointer-events-none select-none blur-[0.5px]"
-                    style={{
-                      WebkitMaskImage: 'linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.8))',
-                      maskImage: 'linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.8))',
-                    }}
-                  >
-                    <img
-                      src={product.image}
-                      alt="reflection"
-                      draggable={false}
-                      onDragStart={(e) => e.preventDefault()}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
 
                   {/* 2. The sheen overlay, matched to the rotation angle and applying linear reflection shine */}
                   <div 
@@ -400,8 +365,8 @@ export default function ProductDetailsClient({ product, reviews: initialReviews 
                       transition: isDragging ? 'none' : 'background 0.4s cubic-bezier(0.25, 1, 0.5, 1)',
                       WebkitMaskImage: `url('${product.image}')`,
                       maskImage: `url('${product.image}')`,
-                      WebkitMaskSize: 'contain',
-                      maskSize: 'contain',
+                      WebkitMaskSize: 'cover',
+                      maskSize: 'cover',
                       WebkitMaskPosition: 'center',
                       maskPosition: 'center',
                       WebkitMaskRepeat: 'no-repeat',
@@ -427,6 +392,18 @@ export default function ProductDetailsClient({ product, reviews: initialReviews 
               <span className="w-1.5 h-1.5 bg-gold-500 rounded-full animate-pulse" />
               <span className="text-[8px] tracking-widest font-bold text-gold-600 uppercase font-sans">HD Showcase</span>
             </div>
+
+            {/* Play HD Video button if videoUrl exists */}
+            {product.videoUrl && (
+              <button
+                onClick={() => {
+                  window.open(product.videoUrl, '_blank');
+                }}
+                className="absolute bottom-4 left-4 px-3 py-1.5 text-[9px] uppercase tracking-widest font-semibold font-sans border bg-white/80 border-neutral-300 text-neutral-600 hover:bg-white flex items-center gap-1 cursor-pointer"
+              >
+                <span>▶ Play Video</span>
+              </button>
+            )}
 
             {/* Toggle 360 visualizer */}
             <button

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getDbClient } from '@/lib/db';
+import { VdbService } from '@/services/vdbService';
 import ProductsClient from './ProductsClient';
 
 export const revalidate = 0;
@@ -9,11 +9,10 @@ interface ProductsPageProps {
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
-  const db = getDbClient();
   const { category, search } = await searchParams;
   
-  // Normalize category to map synonyms to seeded database categories
-  let targetCategory = category;
+  // Normalize category to map synonyms to seeded VDB jewelry categories
+  let targetCategory = category || null;
   if (category) {
     const catLower = category.toLowerCase();
     if (catLower === 'wedding rings' || catLower === 'wedding bands' || catLower === 'wedding') {
@@ -23,32 +22,24 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     }
   }
   
-  let products: any[] = [];
+  let initialData = { products: [] as any[], totalCount: 0, totalPages: 1, currentPage: 1 };
   try {
-    products = await db.product.findMany();
+    initialData = await VdbService.getProducts({
+      category: targetCategory,
+      search: search || null,
+      page: 1,
+      limit: 9
+    });
   } catch (e) {
-    console.error("Error fetching catalog products:", e);
+    console.error("Error fetching initial catalog products on server:", e);
   }
-
-  // Format products for Next.js Client Component serialization safety
-  const formattedProducts = products.map((prod) => ({
-    id: prod.id,
-    title: prod.title,
-    description: prod.description || '',
-    category: prod.category,
-    material: prod.material || '',
-    price: Number(prod.price),
-    image: prod.image,
-    rating: Number(prod.rating || 5),
-    reviewsCount: Number(prod.reviewsCount || 0),
-    specs: prod.specs || '{}',
-    care: prod.care || ''
-  }));
 
   return (
     <ProductsClient 
-      products={formattedProducts} 
-      category={targetCategory || null} 
+      initialProducts={initialData.products}
+      initialTotalCount={initialData.totalCount}
+      initialTotalPages={initialData.totalPages}
+      category={targetCategory} 
       search={search || null} 
     />
   );

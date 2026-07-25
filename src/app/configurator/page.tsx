@@ -58,6 +58,7 @@ function ConfiguratorPageContent() {
       'GB / GBP': '£',
       'US / USD': '$',
       'EU / EUR': '€',
+      'IN / INR': '₹',
     }[currency] || '$';
 
     const rate = {
@@ -65,6 +66,7 @@ function ConfiguratorPageContent() {
       'GB / GBP': 0.78,
       'US / USD': 1.0,
       'EU / EUR': 0.92,
+      'IN / INR': 83.5,
     }[currency] || 1.0;
 
     const converted = amount * rate;
@@ -124,6 +126,48 @@ function ConfiguratorPageContent() {
 
     initializedRef.current = true;
   }, [searchParams]);
+
+  // Listen for iframe postMessages from VDB and Nivoda
+  useEffect(() => {
+    const handleIframeMessage = (event: MessageEvent) => {
+      const origin = event.origin;
+      const isTrusted = 
+        origin.endsWith('vdbapp.com') || 
+        origin.endsWith('nivoda.net') ||
+        origin.includes('localhost'); // allow local testing/mocking
+
+      if (!isTrusted) return;
+
+      const data = event.data;
+      if (!data) return;
+
+      let targetId = '';
+      if (data.type === 'vdb_select_stone' && data.itemId) {
+        targetId = `vdb-${data.itemId}`;
+      } else if (data.type === 'nivoda_select_stone' && data.diamondId) {
+        targetId = `niv-${data.diamondId}`;
+      } else if (data.action === 'select_stone' && data.stoneId) {
+        targetId = data.stoneId.startsWith('vdb-') || data.stoneId.startsWith('niv-') 
+          ? data.stoneId 
+          : `vdb-${data.stoneId}`;
+      }
+
+      if (targetId) {
+        VdbService.getById(targetId).then((dia) => {
+          if (dia) {
+            setSelectedDiamond(dia);
+            setStep(6);
+            success("Diamond attached from showroom successfully!");
+          }
+        }).catch((err) => {
+          console.error("Error loading diamond from message:", err);
+        });
+      }
+    };
+
+    window.addEventListener('message', handleIframeMessage);
+    return () => window.removeEventListener('message', handleIframeMessage);
+  }, [success, setSelectedDiamond, setStep]);
 
   // Wizard step definitions
   const stepsList = [
@@ -213,9 +257,9 @@ function ConfiguratorPageContent() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
-      {/* Wizard Progress Track (Interactive Stepper Timeline) */}
-      <div className="relative glass-panel shadow-md p-6 rounded-2xl overflow-x-auto border border-gold-300/15">
-        <div className="absolute top-1/2 left-8 right-8 h-[2px] bg-gradient-to-r from-gold-200 via-gold-400 to-gold-200 -translate-y-1/2 z-0 hidden md:block opacity-45" />
+      {/* Wizard Progress Track (Premium Light Stepper Capsule) */}
+      <div className="relative bg-gradient-to-b from-[#faf9f6] to-[#f4f1e8] p-5.5 rounded-3xl overflow-x-auto border border-gold-300/30 shadow-md">
+        <div className="absolute top-1/2 left-8 right-8 h-[1px] bg-gradient-to-r from-gold-300/10 via-gold-400/40 to-gold-300/10 -translate-y-1/2 z-0 hidden md:block" />
         <div className="relative z-10 flex justify-between items-center min-w-[640px] md:min-w-0 gap-4">
           {stepsList.map((st) => {
             const isActive = step === st.num;
@@ -227,19 +271,19 @@ function ConfiguratorPageContent() {
                 className="flex flex-col items-center gap-2.5 flex-1 group focus:outline-none cursor-pointer"
               >
                 <div
-                  className={`w-10 h-10 rounded-full font-sans text-xs flex items-center justify-center border transition-all duration-300 ${
+                  className={`w-9 h-9 rounded-full font-serif text-xs flex items-center justify-center border transition-all duration-500 ${
                     isActive
-                      ? 'bg-gold-500 border-gold-600 text-white font-extrabold ring-4 ring-gold-100/60 shadow-lg scale-110 animate-pulse'
+                      ? 'gold-gradient border-gold-600 text-white font-extrabold ring-4 ring-gold-100/60 shadow-md scale-110'
                       : isCompleted
-                      ? 'bg-gold-50/90 border-gold-400 text-gold-700 hover:bg-gold-100 hover:scale-105'
-                      : 'bg-white border-neutral-200 text-neutral-400 group-hover:border-gold-300 group-hover:text-neutral-700'
+                      ? 'bg-gold-50/80 border-gold-400 text-gold-700 hover:bg-gold-100 hover:scale-105'
+                      : 'bg-white border-neutral-200 text-neutral-450 group-hover:border-gold-300 group-hover:text-neutral-700'
                   }`}
                 >
-                  {isCompleted ? <Check className="h-4.5 w-4.5 stroke-[2.5]" /> : st.num}
+                  {isCompleted ? <Check className="h-4 w-4 stroke-[2.5]" /> : st.num}
                 </div>
                 <span
-                  className={`text-[9.5px] uppercase tracking-[0.2em] font-sans font-black transition-all duration-300 ${
-                    isActive ? 'text-gold-600 scale-105' : 'text-neutral-500 group-hover:text-neutral-800'
+                  className={`text-[8.5px] uppercase tracking-[0.2em] font-sans font-bold transition-all duration-300 ${
+                    isActive ? 'text-gold-700 font-extrabold scale-105' : 'text-neutral-550 group-hover:text-neutral-800'
                   }`}
                 >
                   {st.title}
@@ -255,27 +299,28 @@ function ConfiguratorPageContent() {
         
         {/* Left Column: Visualizer View (Sticky on Desktop) */}
         <div className="lg:col-span-6 lg:sticky lg:top-28 space-y-6 flex flex-col items-center self-start w-full">
-          <div className="w-full max-w-[480px] bg-gradient-to-b from-[#faf9f6] to-[#f4f2ec] border border-gold-300/35 shadow-2xl p-6 rounded-2xl relative overflow-hidden group flex flex-col items-center justify-center">
+          <div className="w-full max-w-[480px] bg-gradient-to-b from-[#faf8f5] to-[#f2ede0] border border-gold-400/25 shadow-2xl p-6 rounded-3xl relative overflow-hidden group flex flex-col items-center justify-center">
             {/* Museum highlight header */}
             <div className="absolute top-4 left-6 right-6 flex justify-between items-center z-10 pointer-events-none select-none">
-              <span className="text-[8px] font-sans tracking-[0.25em] text-neutral-400 font-extrabold uppercase">Atelier Holographic Live Frame</span>
+              <span className="text-[8px] font-sans tracking-[0.25em] text-gold-700 font-extrabold uppercase">Atelier Holographic Live Frame</span>
               <span className="w-2 h-2 rounded-full bg-gold-500 animate-ping"></span>
             </div>
             
             {/* Ambient gold radial glow casting down from the top */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-32 bg-gold-400/15 rounded-full blur-[40px] pointer-events-none" />
-
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-[radial-gradient(circle_at_center,rgba(197,160,41,0.08)_0%,transparent_70%)] blur-2xl pointer-events-none" />
+ 
             <RingVisualizer shape={shape} setting={setting} metal={metal} />
             
             {/* Dynamic visual watermark in background */}
-            <div className="absolute bottom-4 left-6 text-[8px] font-mono tracking-widest text-neutral-300/60 uppercase pointer-events-none select-none">
-              J&D ATELIER • ROTATION PREVIEW
+            <div className="absolute bottom-4 left-6 text-[8px] font-mono tracking-[0.25em] text-gold-650/30 uppercase pointer-events-none select-none">
+              J&D LONDON • BENCH VISUALIZATION
             </div>
           </div>
           
           {/* Price Breakdown Details */}
-          <div className="w-full max-w-[480px] glass-panel p-6 rounded-2xl shadow-lg space-y-4 border border-gold-300/20 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-gold-300 via-gold-500 to-gold-300" />
+          <div className="w-full max-w-[480px] glass-panel-light p-6 rounded-2xl shadow-lg space-y-4 border border-gold-300/10 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-gold-300/20 via-gold-500/60 to-gold-300/20" />
             <h4 className="font-serif text-sm uppercase tracking-widest text-neutral-900 border-b border-gold-400/20 pb-2.5 font-bold">
               Cost Summary
             </h4>
@@ -323,10 +368,10 @@ function ConfiguratorPageContent() {
                 <button
                   key={cat.name}
                   onClick={() => setCategory(cat.name)}
-                  className={`text-left p-6 border rounded-xl transition-all duration-500 flex flex-col justify-between hover:border-gold-400 hover:shadow-lg hover-luxury-lift cursor-pointer group relative ${
+                  className={`text-left p-6 border rounded-2xl transition-all duration-500 flex flex-col justify-between hover:border-gold-400/50 hover:shadow-xl cursor-pointer group relative ${
                     category === cat.name
-                      ? 'border-gold-500 bg-gradient-to-b from-[#faf6eb]/40 to-white shadow-md ring-1 ring-gold-400/20'
-                      : 'border-neutral-200 bg-white'
+                      ? 'border-gold-500 bg-gradient-to-b from-[#faf8f5] to-[#f4eee0] shadow-md ring-1 ring-gold-400/30 scale-[1.01] -translate-y-0.5'
+                      : 'border-gold-300/10 bg-[#faf9f6]/40 hover:bg-white'
                   }`}
                 >
                   <div className="flex justify-between items-center w-full">
@@ -354,10 +399,10 @@ function ConfiguratorPageContent() {
                 <button
                   key={sh.name}
                   onClick={() => setShape(sh.name)}
-                  className={`p-5 border rounded-xl transition-all duration-500 text-center flex flex-col items-center justify-between aspect-square hover:border-gold-400 hover:shadow-lg hover-luxury-lift group relative cursor-pointer ${
+                  className={`p-5 border rounded-2xl transition-all duration-500 text-center flex flex-col items-center justify-between aspect-square hover:border-gold-400/50 hover:shadow-xl group relative cursor-pointer ${
                     shape === sh.name
-                      ? 'border-gold-500 bg-gradient-to-b from-[#faf6eb]/40 to-white shadow-md ring-1 ring-gold-400/20 scale-[1.03]'
-                      : 'border-neutral-200 bg-white'
+                      ? 'border-gold-500 bg-gradient-to-b from-[#faf8f5] to-[#f4eee0] shadow-md ring-1 ring-gold-400/30 scale-[1.03] -translate-y-0.5'
+                      : 'border-gold-300/10 bg-[#faf9f6]/40 hover:bg-white'
                   }`}
                 >
                   {shape === sh.name && (
@@ -390,10 +435,10 @@ function ConfiguratorPageContent() {
                 <button
                   key={se.name}
                   onClick={() => setSetting(se.name)}
-                  className={`p-6 border rounded-xl transition-all duration-500 text-left flex flex-col justify-between hover:border-gold-400 hover:shadow-lg hover-luxury-lift group relative cursor-pointer ${
+                  className={`p-6 border rounded-2xl transition-all duration-500 text-left flex flex-col justify-between hover:border-gold-400/50 hover:shadow-xl group relative cursor-pointer ${
                     setting === se.name
-                      ? 'border-gold-500 bg-gradient-to-b from-[#faf6eb]/40 to-white shadow-md ring-1 ring-gold-400/20'
-                      : 'border-neutral-200 bg-white'
+                      ? 'border-gold-500 bg-gradient-to-b from-[#faf8f5] to-[#f4eee0] shadow-md ring-1 ring-gold-400/30 scale-[1.01] -translate-y-0.5'
+                      : 'border-gold-300/10 bg-[#faf9f6]/40 hover:bg-white'
                   }`}
                 >
                   {setting === se.name && (
@@ -425,10 +470,10 @@ function ConfiguratorPageContent() {
                 <button
                   key={me.name}
                   onClick={() => setMetal(me.name)}
-                  className={`p-6 border rounded-xl transition-all duration-500 text-left flex items-center gap-5 hover:border-gold-400 hover:shadow-lg hover-luxury-lift group relative cursor-pointer ${
+                  className={`p-6 border rounded-2xl transition-all duration-500 text-left flex items-center gap-5 hover:border-gold-400/50 hover:shadow-xl group relative cursor-pointer ${
                     metal === me.name
-                      ? 'border-gold-500 bg-gradient-to-b from-[#faf6eb]/40 to-white shadow-md ring-1 ring-gold-400/20'
-                      : 'border-neutral-200 bg-white'
+                      ? 'border-gold-500 bg-gradient-to-b from-[#faf8f5] to-[#f4eee0] shadow-md ring-1 ring-gold-400/30 scale-[1.01] -translate-y-0.5'
+                      : 'border-gold-300/10 bg-[#faf9f6]/40 hover:bg-white'
                   }`}
                 >
                   <div className={`w-12 h-12 rounded-full border border-neutral-300 flex-shrink-0 flex items-center justify-center p-1.5 shadow-md transition-transform duration-300 group-hover:scale-105 ${metalColors[me.name]}`}>

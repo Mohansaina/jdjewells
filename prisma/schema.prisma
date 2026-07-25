@@ -1,6 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -41,6 +42,8 @@ model Product {
   updatedAt      DateTime      @updatedAt
   reviews        Review[]
   orderItems     OrderItem[]
+
+  @@index([category])
 }
 
 model Review {
@@ -52,6 +55,8 @@ model Review {
   comment   String
   date      String   @default("")
   createdAt DateTime @default(now())
+
+  @@index([productId])
 }
 
 model Diamond {
@@ -73,6 +78,10 @@ model Diamond {
   videoUrl       String?
   createdAt      DateTime    @default(now())
   orderItems     OrderItem[]
+
+  @@index([shape])
+  @@index([carat])
+  @@index([price])
 }
 
 model Order {
@@ -92,6 +101,8 @@ model Order {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   items           OrderItem[]
+
+  @@index([userId])
 }
 
 model OrderItem {
@@ -106,6 +117,10 @@ model OrderItem {
   customConfig    Configuration? @relation(fields: [customConfigId], references: [id], onDelete: SetNull)
   quantity        Int            @default(1)
   price           Float
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([diamondId])
 }
 
 model Configuration {
@@ -121,4 +136,14 @@ model Configuration {
   price       Float
   createdAt   DateTime    @default(now())
   orderItems  OrderItem[]
+
+  @@index([userId])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }

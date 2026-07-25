@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
+import { VdbService } from '@/services/vdbService';
 import { getDbClient } from '@/lib/db';
 import { sanitizeString } from '@/lib/validation';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const db = getDbClient();
   const { id } = await params;
   try {
-    const product = await db.product.findUnique({
-      where: { id }
-    });
+    const product = await VdbService.getProductById(id);
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }

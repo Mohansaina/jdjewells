@@ -1,18 +1,19 @@
 import React from 'react';
-import { getDbClient } from '@/lib/db';
+import { VdbService } from '@/services/vdbService';
 import EngagementRingsClient from './EngagementRingsClient';
 
 export const revalidate = 0;
 
 export default async function EngagementRingsPage() {
-  const db = getDbClient();
   let products: any[] = [];
   try {
-    products = await db.product.findMany({
-      where: { category: 'engagement rings' }
+    const data = await VdbService.getProducts({
+      category: 'engagement rings',
+      limit: 100
     });
+    products = data.products;
   } catch (e) {
-    console.error("Failed to load engagement rings:", e);
+    console.error("Failed to load engagement rings from VDB Service:", e);
   }
 
   // Format products for Next.js Client Component serialization safety
@@ -32,4 +33,5 @@ export default async function EngagementRingsPage() {
 
   return <EngagementRingsClient initialProducts={formattedProducts} />;
 }
+
 
