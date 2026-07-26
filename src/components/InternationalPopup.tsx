@@ -6,34 +6,59 @@ import { X, Globe } from 'lucide-react';
 export default function InternationalPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [detectedCountry, setDetectedCountry] = useState('India');
+  const [countryFlag, setCountryFlag] = useState('🇮🇳');
   const [detectedCurrency, setDetectedCurrency] = useState('Indian Rupee (₹)');
   const [detectedCurrencyCode, setDetectedCurrencyCode] = useState('IN / INR');
 
   useEffect(() => {
-    // Check if currency is already set
-    const savedCurrency = localStorage.getItem('currency');
+    const onboardingCompleted = localStorage.getItem('currency_onboarding_completed');
 
-    // Detect visitor location using timezone & public IP API
     const detectLocation = async () => {
       try {
         let currencyCode = 'GB / GBP';
+        let countryName = 'United Kingdom';
+        let flag = '🇬🇧';
+        let currencyLabel = 'British Pound (£)';
+
         const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
 
         if (timeZone.includes('Kolkata') || timeZone.includes('Calcutta') || timeZone.includes('India')) {
           currencyCode = 'IN / INR';
+          countryName = 'India';
+          flag = '🇮🇳';
+          currencyLabel = 'Indian Rupee (₹)';
         } else if (timeZone.includes('London')) {
           currencyCode = 'GB / GBP';
+          countryName = 'United Kingdom';
+          flag = '🇬🇧';
+          currencyLabel = 'British Pound (£)';
         } else if (timeZone.includes('America') || timeZone.includes('New_York') || timeZone.includes('Los_Angeles') || timeZone.includes('Chicago')) {
           currencyCode = 'US / USD';
+          countryName = 'United States';
+          flag = '🇺🇸';
+          currencyLabel = 'US Dollar ($)';
         } else if (timeZone.includes('Dubai') || timeZone.includes('Muscat')) {
           currencyCode = 'AE / AED';
+          countryName = 'United Arab Emirates';
+          flag = '🇦🇪';
+          currencyLabel = 'UAE Dirham (AED)';
         } else if (timeZone.includes('Europe')) {
           currencyCode = 'EU / EUR';
+          countryName = 'Europe';
+          flag = '🇪🇺';
+          currencyLabel = 'Euro (€)';
         }
 
-        if (!savedCurrency) {
-          localStorage.setItem('currency', currencyCode);
-          window.dispatchEvent(new Event('currency-change'));
+        setDetectedCountry(countryName);
+        setCountryFlag(flag);
+        setDetectedCurrency(currencyLabel);
+        setDetectedCurrencyCode(currencyCode);
+
+        // Auto trigger location popup if onboarding has not been completed
+        if (!onboardingCompleted) {
+          setTimeout(() => {
+            setIsOpen(true);
+          }, 1200);
         }
 
         // Background IP lookup refinement
@@ -41,21 +66,35 @@ export default function InternationalPopup() {
         if (res.ok) {
           const data = await res.json();
           const countryCode = data.country_code;
-          let ipCurrency = currencyCode;
 
-          if (countryCode === 'IN') ipCurrency = 'IN / INR';
-          else if (countryCode === 'GB') ipCurrency = 'GB / GBP';
-          else if (countryCode === 'US' || countryCode === 'CA') ipCurrency = 'US / USD';
-          else if (countryCode === 'AE' || countryCode === 'SA' || countryCode === 'QA') ipCurrency = 'AE / AED';
-          else if (['FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'AT', 'IE', 'PT', 'GR'].includes(countryCode)) ipCurrency = 'EU / EUR';
-
-          if (!savedCurrency && ipCurrency !== currencyCode) {
-            localStorage.setItem('currency', ipCurrency);
-            window.dispatchEvent(new Event('currency-change'));
+          if (countryCode === 'IN') {
+            setDetectedCountry('India');
+            setCountryFlag('🇮🇳');
+            setDetectedCurrency('Indian Rupee (₹)');
+            setDetectedCurrencyCode('IN / INR');
+          } else if (countryCode === 'GB') {
+            setDetectedCountry('United Kingdom');
+            setCountryFlag('🇬🇧');
+            setDetectedCurrency('British Pound (£)');
+            setDetectedCurrencyCode('GB / GBP');
+          } else if (countryCode === 'US' || countryCode === 'CA') {
+            setDetectedCountry('United States');
+            setCountryFlag('🇺🇸');
+            setDetectedCurrency('US Dollar ($)');
+            setDetectedCurrencyCode('US / USD');
+          } else if (countryCode === 'AE' || countryCode === 'SA' || countryCode === 'QA') {
+            setDetectedCountry('United Arab Emirates');
+            setCountryFlag('🇦🇪');
+            setDetectedCurrency('UAE Dirham (AED)');
+            setDetectedCurrencyCode('AE / AED');
           }
         }
       } catch (err) {
-        // Silent fallback to timezone detection
+        if (!onboardingCompleted) {
+          setTimeout(() => {
+            setIsOpen(true);
+          }, 1200);
+        }
       }
     };
 
@@ -84,68 +123,67 @@ export default function InternationalPopup() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in font-sans">
-      <div className="bg-[#fcfbf9] border border-gold/20 shadow-2xl max-w-lg w-full relative overflow-hidden rounded p-6 sm:p-10 text-center space-y-6">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-[999] flex items-center justify-center p-4 animate-fade-in font-sans">
+      <div className="bg-[#0e0e11] border border-gold-500/35 shadow-[0_25px_60px_rgba(0,0,0,0.8)] max-w-lg w-full relative overflow-hidden rounded-2xl p-6 sm:p-8 text-center space-y-6 text-white">
         
-        {/* Top gold bar */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gold-400" />
+        {/* Top gold accent line */}
+        <div className="absolute top-0 left-0 right-0 h-1 gold-gradient" />
         
         {/* Close Button */}
         <button 
           onClick={handleClose} 
-          className="absolute top-4 right-4 text-neutral-400 hover:text-gold-600 transition-colors p-1"
+          className="absolute top-4 right-4 text-neutral-400 hover:text-white transition-colors p-1 cursor-pointer"
           aria-label="Close modal"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <span className="text-[10px] tracking-[0.3em] text-neutral-400 uppercase font-bold block">International Shipping</span>
-        
-        <div className="flex justify-center pt-2">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gold-100 rounded-full scale-150 blur-xl opacity-40 animate-pulse" />
-            <Globe className="relative h-12 w-12 text-gold-600 stroke-[1.2]" />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <h2 className="font-serif text-2xl sm:text-3xl text-neutral-900 tracking-wide uppercase">
-            We Ship to {detectedCountry}
+        <div className="space-y-1">
+          <span className="text-[10px] tracking-[0.35em] text-gold-400 uppercase font-bold block">
+            INTERNATIONAL SHIPPING
+          </span>
+          <h2 className="font-serif text-2xl sm:text-3xl text-white tracking-wider uppercase font-light">
+            We Ship To {detectedCountry} {countryFlag}
           </h2>
-          <p className="text-xs text-neutral-400 max-w-sm mx-auto leading-relaxed">
-            Enjoy premium fully-insured courier delivery, all custom duties included, and zero hidden costs upon checkout.
-          </p>
         </div>
 
-        {/* Detection Card */}
-        <div className="bg-white border border-gold/15 p-4 rounded flex items-center gap-3 text-left">
-          <span className="text-2xl">{detectedCountry === 'India' ? '🇮🇳' : '🌐'}</span>
-          <div className="text-xs">
-            <span className="font-semibold text-neutral-800">Visiting from {detectedCountry}?</span>
-            <p className="text-neutral-400 mt-0.5">Would you like to switch prices to {detectedCurrency}?</p>
+        <p className="text-xs text-neutral-300 max-w-md mx-auto leading-relaxed font-light font-sans">
+          You are visiting from <span className="text-gold-300 font-bold">{detectedCountry}</span>. We offer fully-insured express delivery directly to your doorstep with pre-calculated taxes in your local currency.
+        </p>
+
+        {/* Location Detection Box */}
+        <div className="bg-[#141417] border border-gold-500/30 p-4 rounded-xl flex items-center gap-4 text-left">
+          <span className="text-3xl">{countryFlag}</span>
+          <div className="text-xs space-y-0.5">
+            <p className="font-serif text-sm font-bold text-white uppercase tracking-wide">
+              Show prices in {detectedCurrency}?
+            </p>
+            <p className="text-[11px] text-neutral-400 font-sans font-light">
+              Browsing from {detectedCountry} • Direct express courier dispatch
+            </p>
           </div>
         </div>
 
         {/* CTA Actions */}
-        <div className="space-y-3 pt-2">
+        <div className="space-y-3 pt-1">
           <button
             onClick={handleConfirm}
-            className="w-full py-4 text-xs font-bold tracking-widest uppercase gold-gradient text-white hover:gold-gradient-hover hover:shadow-gold shadow-md transition-all duration-300 rounded"
+            className="w-full py-4 text-xs font-bold tracking-[0.2em] uppercase gold-gradient text-white hover:gold-gradient-hover shadow-lg transition-all duration-300 rounded-xl cursor-pointer"
           >
-            Confirm & Continue
+            CONTINUE SHOPPING IN {detectedCurrencyCode.split('/')[1]?.trim() || 'INR'}
           </button>
           <button
             onClick={handleStayOnUk}
-            className="w-full py-3.5 text-xs font-bold tracking-widest uppercase border border-neutral-300 text-neutral-500 hover:bg-neutral-50 bg-white transition-colors rounded"
+            className="w-full py-3.5 text-xs font-bold tracking-[0.2em] uppercase border border-gold-500/40 text-gold-300 hover:text-white hover:border-gold-400 hover:bg-gold-500/10 transition-all rounded-xl cursor-pointer"
           >
-            Stay on UK Site
+            STAY ON UK CATALOG (£)
           </button>
         </div>
 
-        <div className="border-t border-neutral-100 pt-5 text-[9px] tracking-widest uppercase text-neutral-400 flex items-center justify-center gap-4">
-          <span>British Jewellers since 1998</span>
+        <div className="border-t border-neutral-800 pt-4 text-[9.5px] font-mono tracking-widest uppercase text-neutral-400 flex items-center justify-center gap-3">
+          <span>Mayfair Atelier</span>
           <span>•</span>
-          <span>60-Day Exchange Guarantee</span>
+          <span>Fully Insured Global Logistics</span>
         </div>
 
       </div>
