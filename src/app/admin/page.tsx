@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useConfigurator } from '@/context/ConfiguratorContext';
 import { useToast } from '@/context/ToastContext';
-import { DollarSign, ShoppingBag, Grid, ShieldAlert, Award, Hammer, Settings, ArrowUpDown, ChevronDown, Check, Trash2, PlusCircle, AlertCircle } from 'lucide-react';
+import { DollarSign, ShoppingBag, Grid, ShieldAlert, Award, Hammer, Settings, ArrowUpDown, ChevronDown, Check, Trash2, PlusCircle, AlertCircle, Mail, Download } from 'lucide-react';
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'diamonds' | 'home'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'diamonds' | 'subscribers'>('orders');
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [diamonds, setDiamonds] = useState<any[]>([]);
+  const [subscribers, setSubscribers] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -42,14 +43,34 @@ export default function AdminPage() {
       const resOrd = await fetch('/api/orders');
       const resProd = await fetch('/api/products');
       const resDia = await fetch('/api/diamonds');
+      const resSub = await fetch('/api/newsletter');
       
       if (resOrd.ok) setOrders(await resOrd.json());
       if (resProd.ok) setProducts(await resProd.json());
       if (resDia.ok) setDiamonds(await resDia.json());
+      if (resSub.ok) setSubscribers(await resSub.json());
     } catch (e) {
       console.error("Admin data load error:", e);
     }
     setLoading(false);
+  };
+
+  // Export Subscribers to CSV
+  const handleExportSubscribersCSV = () => {
+    if (subscribers.length === 0) {
+      error("No newsletter subscribers to export.");
+      return;
+    }
+    const headers = "ID,Email,SubscribedDate\n";
+    const rows = subscribers.map(s => `${s.id},"${s.email}",${new Date(s.createdAt).toISOString()}`).join("\n");
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jd_newsletter_subscribers_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    success("Subscribers registry exported to CSV successfully!");
   };
 
   useEffect(() => {
@@ -224,6 +245,14 @@ export default function AdminPage() {
         >
           Diamond Vault ({diamonds.length})
         </button>
+        <button
+          onClick={() => setActiveTab('subscribers')}
+          className={`pb-3 transition-colors focus:outline-none ${
+            activeTab === 'subscribers' ? 'text-gold-600 border-b-2 border-gold-500 font-bold' : 'hover:text-neutral-800'
+          }`}
+        >
+          Newsletter VIPs ({subscribers.length})
+        </button>
       </div>
 
       {loading ? (
@@ -359,6 +388,74 @@ export default function AdminPage() {
                         <td className="py-3 px-4 text-neutral-400 text-center font-bold">{dia.certificate}</td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: NEWSLETTER VIP SUBSCRIBERS */}
+          {activeTab === 'subscribers' && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#faf8f5] border border-gold-500/20 p-4">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-gold-600 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-serif text-sm uppercase tracking-wider font-bold text-neutral-900">
+                      VIP Journal Newsletter Subscribers ({subscribers.length})
+                    </h3>
+                    <p className="text-[10px] text-neutral-500 font-sans">
+                      Clients who subscribed to receive private vault drops & collection updates.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleExportSubscribersCSV}
+                  className="px-4 py-2 text-xs font-sans font-bold uppercase tracking-wider gold-gradient text-white hover:gold-gradient-hover rounded-sm flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Download className="h-4 w-4" /> Export CSV
+                </button>
+              </div>
+
+              <div className="bg-white border border-neutral-200 overflow-x-auto text-xs font-sans">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-neutral-50 border-b border-neutral-100 font-semibold text-neutral-500">
+                      <th className="py-3.5 px-4 w-12">#</th>
+                      <th className="py-3.5 px-4">Client Email Address</th>
+                      <th className="py-3.5 px-4 w-48">Subscription Date</th>
+                      <th className="py-3.5 px-4 w-36 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100 text-neutral-700">
+                    {subscribers.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-10 text-center text-neutral-400 font-sans italic">
+                          No newsletter subscribers recorded yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      subscribers.map((sub, idx) => (
+                        <tr key={sub.id || idx} className="hover:bg-neutral-50/50">
+                          <td className="py-3.5 px-4 text-neutral-400 font-mono text-[11px]">{idx + 1}</td>
+                          <td className="py-3.5 px-4 font-mono font-bold text-neutral-900">{sub.email}</td>
+                          <td className="py-3.5 px-4 text-neutral-500">
+                            {new Date(sub.createdAt).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="py-3.5 px-4 text-center">
+                            <span className="inline-block text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-300/40 px-2.5 py-0.5 rounded-full uppercase">
+                              Active VIP
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
