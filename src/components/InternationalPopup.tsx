@@ -1,15 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, User, Mail, Sparkles, Check } from 'lucide-react';
 import DiamondShapeSvg from '@/components/DiamondShapeSvg';
+import { useAuth } from '@/context/AuthContext';
 
 export default function InternationalPopup() {
+  const { signup } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('IN');
   const [detectedCountryName, setDetectedCountryName] = useState('India');
   const [currencySymbol, setCurrencySymbol] = useState('Indian Rupee (₹)');
   const [currencyCode, setCurrencyCode] = useState('IN / INR');
+
+  const [visitorName, setVisitorName] = useState('');
+  const [visitorEmail, setVisitorEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Country options list
   const countries = [
@@ -83,11 +89,22 @@ export default function InternationalPopup() {
     updateCountrySelection(e.target.value);
   };
 
-  const handleConfirm = () => {
-    localStorage.setItem('currency', currencyCode);
-    localStorage.setItem('currency_onboarding_completed', 'true');
-    window.dispatchEvent(new Event('currency-change'));
-    setIsOpen(false);
+  const handleConfirm = async () => {
+    setIsSubmitting(true);
+    try {
+      localStorage.setItem('currency', currencyCode);
+      localStorage.setItem('currency_onboarding_completed', 'true');
+      window.dispatchEvent(new Event('currency-change'));
+
+      if (visitorName.trim() && visitorEmail.trim()) {
+        await signup(visitorName.trim(), visitorEmail.trim(), 'welcome123');
+      }
+    } catch (e) {
+      console.error('Error handling popup registration:', e);
+    } finally {
+      setIsSubmitting(false);
+      setIsOpen(false);
+    }
   };
 
   const handleStayOnUk = () => {
@@ -123,7 +140,7 @@ export default function InternationalPopup() {
         <div className="text-center space-y-1">
           <DiamondShapeSvg shape="Round" className="w-5 h-5 text-neutral-800 mx-auto opacity-80" />
           <span className="text-[10px] font-sans tracking-[0.3em] text-neutral-400 uppercase font-light block">
-            INTERNATIONAL
+            INTERNATIONAL WELCOME
           </span>
           <h3 className="font-serif text-xs uppercase tracking-[0.25em] text-neutral-800 font-bold pt-0.5">
             THE DIAMOND STORE
@@ -142,11 +159,11 @@ export default function InternationalPopup() {
         </div>
 
         {/* Detected Info Box */}
-        <div className="bg-[#faf9f6] border border-neutral-200 p-3.5 mt-6 flex items-center justify-between gap-3 text-left">
+        <div className="bg-[#faf9f6] border border-neutral-200 p-3.5 mt-5 flex items-center justify-between gap-3 text-left">
           <div className="flex items-center gap-2.5 text-xs text-neutral-700 font-sans leading-snug">
             <span className="text-lg flex-shrink-0">{currentObj.flag}</span>
             <span>
-              It looks like you're visiting from <strong className="font-semibold text-neutral-900">{detectedCountryName}</strong>. Would you like to switch to {currencySymbol}?
+              Visiting from <strong className="font-semibold text-neutral-900">{detectedCountryName}</strong>? Switch prices to {currencySymbol}.
             </span>
           </div>
           <span className="text-[8.5px] font-mono tracking-widest uppercase font-bold text-neutral-400 border border-neutral-200 px-2 py-1 flex-shrink-0 bg-white">
@@ -154,16 +171,49 @@ export default function InternationalPopup() {
           </span>
         </div>
 
+        {/* Quick Name & Email Registration Section */}
+        <div className="mt-4 p-4 bg-gold-50/30 border border-gold-200/50 rounded-lg space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-gold-700 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-gold-600" /> Welcome Perks & Registration
+            </span>
+            <span className="text-[9px] text-neutral-400 uppercase font-semibold">Optional</span>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            <div className="relative flex items-center">
+              <User className="absolute left-3 w-3.5 h-3.5 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Enter Your Full Name (e.g. Mohan Saina)"
+                value={visitorName}
+                onChange={(e) => setVisitorName(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-white border border-neutral-250 rounded focus:outline-none focus:border-gold-500 text-xs text-neutral-800 placeholder-neutral-400"
+              />
+            </div>
+            <div className="relative flex items-center">
+              <Mail className="absolute left-3 w-3.5 h-3.5 text-neutral-400" />
+              <input
+                type="email"
+                placeholder="Enter Email Address"
+                value={visitorEmail}
+                onChange={(e) => setVisitorEmail(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-white border border-neutral-250 rounded focus:outline-none focus:border-gold-500 text-xs text-neutral-800 placeholder-neutral-400"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Ship To Dropdown Input */}
-        <div className="mt-5 space-y-1.5">
+        <div className="mt-4 space-y-1.5">
           <label className="text-[9px] font-sans font-bold uppercase tracking-widest text-neutral-400 block">
-            SHIP TO
+            SHIP TO COUNTRY & CURRENCY
           </label>
           <div className="relative">
             <select
               value={selectedCountry}
               onChange={handleCountryChange}
-              className="w-full border border-neutral-300 px-4 py-3.5 bg-white text-xs font-sans font-medium text-neutral-900 appearance-none focus:outline-none focus:border-neutral-900 cursor-pointer pr-10"
+              className="w-full border border-neutral-300 px-4 py-3 bg-white text-xs font-sans font-medium text-neutral-900 appearance-none focus:outline-none focus:border-neutral-900 cursor-pointer pr-10"
             >
               {countries.map(c => (
                 <option key={c.code} value={c.code}>
@@ -173,22 +223,23 @@ export default function InternationalPopup() {
             </select>
             <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none stroke-[1.5]" />
           </div>
-          <p className="text-[11px] text-neutral-500 font-sans pt-1">
+          <p className="text-[10.5px] text-neutral-500 font-sans pt-0.5">
             Prices will be shown in <span className="font-medium text-neutral-800">{currencySymbol}</span>
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-6 space-y-3">
+        <div className="mt-5 space-y-2.5">
           <button
             onClick={handleConfirm}
-            className="w-full py-4 bg-neutral-950 hover:bg-neutral-800 text-white font-sans text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-none shadow-sm cursor-pointer"
+            disabled={isSubmitting}
+            className="w-full py-3.5 bg-neutral-950 hover:bg-neutral-800 text-white font-sans text-xs font-bold uppercase tracking-[0.2em] transition-all shadow-sm cursor-pointer disabled:opacity-50"
           >
-            CONFIRM & CONTINUE
+            {isSubmitting ? 'SAVING...' : 'CONFIRM & CONTINUE'}
           </button>
           <button
             onClick={handleStayOnUk}
-            className="text-[11px] font-sans tracking-widest uppercase text-neutral-500 hover:text-neutral-900 underline block text-center w-full cursor-pointer py-1"
+            className="text-[10px] font-sans tracking-widest uppercase text-neutral-500 hover:text-neutral-900 underline block text-center w-full cursor-pointer py-1"
           >
             STAY ON UK SITE
           </button>
