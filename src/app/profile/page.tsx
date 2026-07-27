@@ -5,13 +5,15 @@ import { useCart } from '@/context/CartContext';
 import { useConfigurator } from '@/context/ConfiguratorContext';
 import { useToast } from '@/context/ToastContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Heart, ShoppingBag, ListOrdered, User, AlertCircle, Award, Settings, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Heart, ShoppingBag, ListOrdered, User, AlertCircle, Award, Settings, ShieldCheck, ExternalLink, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 function ProfileContent() {
   const { wishlist, removeFromWishlist, addToCart } = useCart();
   const { setSelectedDiamond, setStep } = useConfigurator();
   const { success } = useToast();
+  const { user, openAuthModal, logout } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -278,27 +280,61 @@ function ProfileContent() {
                 Registry Credentials
               </h3>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <span className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold block">Account Holder</span>
-                    <p className="font-semibold text-neutral-800">Mohan Saina</p>
+              {user ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <span className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold block">Account Holder</span>
+                      <p className="font-semibold text-neutral-900 text-sm">{user.name}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold block">Account Privilege</span>
+                      <p className="font-bold text-gold-600 tracking-wider uppercase">
+                        {user.role === 'ADMIN' ? 'ADMINISTRATIVE PRIVILEGE' : 'PREMIUM COLLECTOR'}
+                      </p>
+                    </div>
                   </div>
+
                   <div className="space-y-1">
-                    <span className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold block">Account Privilege</span>
-                    <p className="font-semibold text-gold-600">PREMIUM COLLECTOR</p>
+                    <span className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold block">Mailing Address</span>
+                    <p className="font-medium text-neutral-800">{user.email}</p>
+                  </div>
+
+                  <div className="pt-4 border-t border-neutral-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-[10px] text-neutral-400">
+                    <p className="flex items-center gap-1.5"><ShieldCheck className="h-4.5 w-4.5 text-gold-500" /> Account authenticated via J&D Jewellers London Registry.</p>
+                    <button
+                      onClick={logout}
+                      className="px-4 py-2 bg-neutral-100 hover:bg-red-50 text-neutral-700 hover:text-red-600 transition-colors uppercase font-bold tracking-wider rounded-sm flex items-center gap-1.5"
+                    >
+                      <LogOut className="h-3.5 w-3.5" /> Sign Out
+                    </button>
                   </div>
                 </div>
-
-                <div className="space-y-1">
-                  <span className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold block">Mailing Address</span>
-                  <p className="font-medium text-neutral-800">admin@jdjewel.com</p>
+              ) : (
+                <div className="py-12 text-center space-y-4">
+                  <User className="h-10 w-10 text-neutral-300 mx-auto stroke-[1.2]" />
+                  <div className="space-y-1">
+                    <h4 className="font-serif text-base uppercase text-neutral-900 tracking-wider">No Active Session</h4>
+                    <p className="text-xs text-neutral-500 max-w-sm mx-auto">
+                      Sign in or create an account to view your private registry credentials and saved preferences.
+                    </p>
+                  </div>
+                  <div className="flex justify-center gap-3 pt-2">
+                    <button
+                      onClick={() => openAuthModal('login')}
+                      className="px-6 py-2.5 text-[10px] tracking-widest uppercase font-bold gold-gradient text-white shadow-sm"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => openAuthModal('signup')}
+                      className="px-6 py-2.5 text-[10px] tracking-widest uppercase font-bold border border-gold-400 text-gold-700 hover:bg-gold-50/50 transition-colors"
+                    >
+                      Create Account
+                    </button>
+                  </div>
                 </div>
-
-                <div className="pt-4 border-t border-neutral-100 flex justify-between items-center text-[10px] text-neutral-400">
-                  <p className="flex items-center gap-1.5"><ShieldCheck className="h-4.5 w-4.5 text-gold-500" /> Account authenticated via GIA merchant registry.</p>
-                </div>
-              </div>
+              )}
             </div>
           )}
 

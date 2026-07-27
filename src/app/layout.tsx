@@ -9,6 +9,8 @@ import Preloader from "@/components/Preloader";
 import CookieBanner from "@/components/CookieBanner";
 import InternationalPopup from "@/components/InternationalPopup";
 
+import { AuthProvider } from "@/context/AuthContext";
+
 export const metadata: Metadata = {
   title: "JD Jewel | Fine Premium Luxury Jewelry & Certified Diamonds",
   description: "Experience the pinnacle of fine jewelry craftsmanship. Explore GIA certified natural diamonds, custom-designed engagement rings, Miami Cuban links, and custom grillz cast in solid 18k gold.",
@@ -28,15 +30,17 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#fcfbf9] text-[#121212]">
         <Preloader />
         <ToastProvider>
-          <CartProvider>
-            <ConfiguratorProvider>
-              <Header />
-              <main className="flex-grow">{children}</main>
-              <Footer />
-              <CookieBanner />
-              <InternationalPopup />
-            </ConfiguratorProvider>
-          </CartProvider>
+          <AuthProvider>
+            <CartProvider>
+              <ConfiguratorProvider>
+                <Header />
+                <main className="flex-grow">{children}</main>
+                <Footer />
+                <CookieBanner />
+                <InternationalPopup />
+              </ConfiguratorProvider>
+            </CartProvider>
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>

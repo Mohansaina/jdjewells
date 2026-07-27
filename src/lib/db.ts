@@ -979,6 +979,7 @@ class DatabaseProxy {
     }
   }
 
+  public get user() { return this.wrap('user'); }
   public get product() { return this.wrap('product'); }
   public get order() { return this.wrap('order'); }
   public get review() { return this.wrap('review'); }

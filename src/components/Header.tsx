@@ -9,17 +9,21 @@ import { useConfigurator, DiamondShape, SettingStyle, MetalType, JewelryCategory
 import { useToast } from '@/context/ToastContext';
 import DiamondShapeSvg from '@/components/DiamondShapeSvg';
 import InternationalPopup from '@/components/InternationalPopup';
+import AuthModal from '@/components/AuthModal';
+import { useAuth } from '@/context/AuthContext';
 
 function HeaderContent() {
   const router = useRouter();
   const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
   const { resetConfig, setCategory, setShape, setSetting, setMetal, setStep } = useConfigurator();
   const { warning } = useToast();
+  const { user, openAuthModal, logout } = useAuth();
   
   const headerRef = React.useRef<HTMLDivElement>(null);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   
   // Active mega menu state
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
@@ -274,13 +278,62 @@ function HeaderContent() {
                 </button>
 
                 {/* Account / User */}
-                <Link 
-                  href="/profile"
-                  className="text-neutral-700 hover:text-gold-500 transition-colors p-1"
-                  title="Account"
-                >
-                  <User className="h-4.5 w-4.5" />
-                </Link>
+                {user ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                      className="flex items-center gap-1.5 text-[10px] tracking-widest font-sans font-bold text-gold-700 hover:text-gold-600 transition-colors uppercase bg-gold-50/60 border border-gold-300/40 px-2.5 py-1 rounded-full"
+                    >
+                      <User className="h-3.5 w-3.5 text-gold-600" />
+                      <span>Hi, {user.name.split(' ')[0]}</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+
+                    {isUserDropdownOpen && (
+                      <div className="absolute right-0 mt-2.5 w-44 bg-[#fcfbf9] border border-gold/20 shadow-xl py-1.5 z-50 text-[10px] tracking-widest font-sans font-semibold uppercase rounded-lg">
+                        <Link
+                          href="/profile"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="block px-4 py-2 hover:bg-gold-50 hover:text-gold-600 text-neutral-700 transition-colors"
+                        >
+                          Account Profile
+                        </Link>
+                        <Link
+                          href="/profile?tab=orders"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="block px-4 py-2 hover:bg-gold-50 hover:text-gold-600 text-neutral-700 transition-colors"
+                        >
+                          Order History
+                        </Link>
+                        <Link
+                          href="/profile?tab=wishlist"
+                          onClick={() => setIsUserDropdownOpen(false)}
+                          className="block px-4 py-2 hover:bg-gold-50 hover:text-gold-600 text-neutral-700 transition-colors"
+                        >
+                          Saved Wishlist
+                        </Link>
+                        <button
+                          onClick={() => {
+                            logout();
+                            setIsUserDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 border-t border-neutral-100 transition-colors"
+                        >
+                          Sign Out
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => openAuthModal('login')}
+                    className="text-neutral-700 hover:text-gold-500 transition-colors p-1 flex items-center gap-1.5 text-[10px] uppercase font-semibold tracking-wider"
+                    title="Sign In / Sign Up"
+                  >
+                    <User className="h-4.5 w-4.5" />
+                    <span className="hidden xl:inline">Sign In</span>
+                  </button>
+                )}
 
                 {/* Wishlist */}
                 <Link 
@@ -1371,6 +1424,7 @@ function HeaderContent() {
           </div>
         </div>
       )}
+      <AuthModal />
       <InternationalPopup />
     </>
   );
