@@ -1,51 +1,104 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+
+// useLayoutEffect warns during SSR; fall back to useEffect on the server so the
+// returning-visitor path can still hide the curtain before first paint.
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
+const SESSION_KEY = 'jd_jewel_loaded';
+/** Keep the curtain up at least this long so a fast load doesn't flash. */
+const MIN_VISIBLE_MS = 550;
+/** Never hold the page hostage longer than this, even if `load` never fires. */
+const MAX_VISIBLE_MS = 3500;
+/** Curtain slide duration — must match `.animate-slide-up-curtain`. */
+const CURTAIN_MS = 1100;
 
 export default function Preloader() {
   const [progress, setProgress] = useState(0);
-  const [mounted, setMounted] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  // Rendered on the server so real content never flashes before the curtain.
   const [showLoader, setShowLoader] = useState(true);
+  const startedAt = useRef<number>(0);
 
-  useEffect(() => {
-    setMounted(true);
-
-    const hasLoaded = sessionStorage.getItem('jd_jewel_loaded');
-    if (hasLoaded === 'true') {
+  // Returning visitors: drop the curtain before paint, no flash.
+  useIsomorphicLayoutEffect(() => {
+    if (sessionStorage.getItem(SESSION_KEY) === 'true') {
       setShowLoader(false);
-      return;
     }
-
-    // Progress counter animation logic
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      // Slightly varying progress steps for a realistic premium load feel
-      const increment = Math.floor(Math.random() * 8) + 3;
-      currentProgress = Math.min(currentProgress + increment, 100);
-      setProgress(currentProgress);
-
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        // Brief pause at 100% before starting the transition
-        setTimeout(() => {
-          setIsLoaded(true);
-          sessionStorage.setItem('jd_jewel_loaded', 'true');
-          // Fully unmount the preloader from DOM after curtain slide-up completes (1.1s transition)
-          setTimeout(() => {
-            setShowLoader(false);
-          }, 1100);
-        }, 350);
-      }
-    }, 80);
-
-    return () => clearInterval(interval);
   }, []);
 
-  if (!mounted || !showLoader) return null;
+  useEffect(() => {
+    if (sessionStorage.getItem(SESSION_KEY) === 'true') return;
+
+    startedAt.current = Date.now();
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Prevent scrolling underneath the curtain.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    let dismissTimer: ReturnType<typeof setTimeout>;
+    let unmountTimer: ReturnType<typeof setTimeout>;
+    let settled = false;
+
+    // Creep toward 90% while the page is still working. Real completion drives
+    // the last 10%, so the bar reflects readiness instead of a scripted delay.
+    const creep = setInterval(() => {
+      setProgress((p) => (p >= 90 ? p : Math.min(p + Math.random() * 9 + 4, 90)));
+    }, 90);
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearInterval(creep);
+      setProgress(100);
+      sessionStorage.setItem(SESSION_KEY, 'true');
+
+      const elapsed = Date.now() - startedAt.current;
+      const hold = Math.max(MIN_VISIBLE_MS - elapsed, 0);
+
+      dismissTimer = setTimeout(() => {
+        setIsLoaded(true);
+        // Reduced motion skips the slide entirely.
+        unmountTimer = setTimeout(
+          () => {
+            setShowLoader(false);
+            document.body.style.overflow = prevOverflow;
+          },
+          reduceMotion ? 0 : CURTAIN_MS
+        );
+      }, hold);
+    };
+
+    if (document.readyState === 'complete') {
+      finish();
+    } else {
+      window.addEventListener('load', finish, { once: true });
+    }
+
+    // Safety net: never strand the visitor if `load` stalls on a hanging asset.
+    const failsafe = setTimeout(finish, MAX_VISIBLE_MS);
+
+    return () => {
+      clearInterval(creep);
+      clearTimeout(dismissTimer);
+      clearTimeout(unmountTimer);
+      clearTimeout(failsafe);
+      window.removeEventListener('load', finish);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
+  if (!showLoader) return null;
 
   return (
     <div
+      id="jd-preloader"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading JD Jewel"
       className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#050505] text-white transition-transform ${
         isLoaded ? 'animate-slide-up-curtain pointer-events-none' : ''
       }`}
@@ -56,13 +109,14 @@ export default function Preloader() {
 
       {/* Main loader content container */}
       <div className="flex flex-col items-center gap-8 text-center z-10">
-        
+
         {/* Outline Tracing Diamond SVG */}
         <div className="relative w-28 h-28 flex items-center justify-center">
           <svg
             viewBox="0 0 100 100"
             className="w-full h-full text-gold-400 stroke-[1.2]"
             fill="none"
+            aria-hidden="true"
           >
             {/* Outer perimeter outline */}
             <polygon
@@ -157,7 +211,7 @@ export default function Preloader() {
 
         {/* Numeric Progress Counter */}
         <span className="font-mono text-sm tracking-widest text-gold-300 font-bold">
-          {String(progress).padStart(3, '0')}%
+          {String(Math.round(progress)).padStart(3, '0')}%
         </span>
       </div>
 

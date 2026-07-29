@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Cormorant_Garamond, Outfit } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { ConfiguratorProvider } from "@/context/ConfiguratorContext";
@@ -10,6 +11,24 @@ import CookieBanner from "@/components/CookieBanner";
 import InternationalPopup from "@/components/InternationalPopup";
 
 import { AuthProvider } from "@/context/AuthContext";
+
+// Self-hosted at build time: no render-blocking request to fonts.googleapis.com and
+// no flash of fallback text. `display: swap` + the generated size-adjust metrics keep
+// the swap from shifting layout.
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-cormorant",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-outfit",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "JD Jewel | Fine Premium Luxury Jewelry & Certified Diamonds",
@@ -25,9 +44,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full antialiased"
+      className={`${cormorant.variable} ${outfit.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#fcfbf9] text-[#121212]">
+        {/* The preloader is server-rendered so real content never flashes before
+            the curtain. Without JS there is nothing to dismiss it, so drop it. */}
+        <noscript>
+          <style>{`#jd-preloader{display:none !important}`}</style>
+        </noscript>
         <Preloader />
         <ToastProvider>
           <AuthProvider>

@@ -151,24 +151,37 @@ export default function HomePage() {
       })
       .catch(e => console.error("Failed to load products on homepage:", e));
 
-    // Scroll reveal intersection observer
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('active');
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
-    );
+    // Scroll reveal intersection observer.
+    // Opting in from JS means sections render visible for no-JS/failed-hydration
+    // rather than being stranded at opacity 0.
+    const root = document.documentElement;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const elements = Array.from(document.querySelectorAll('.reveal-on-scroll'));
+    let observer: IntersectionObserver | undefined;
 
-    const elements = document.querySelectorAll('.reveal-on-scroll');
-    elements.forEach((el) => observer.observe(el));
+    if (prefersReducedMotion) {
+      elements.forEach((el) => el.classList.add('active'));
+    } else {
+      root.classList.add('js-reveal');
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('active');
+              observer?.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+      );
+
+      elements.forEach((el) => observer!.observe(el));
+    }
 
     return () => {
       window.removeEventListener('currency-change', handleCurrencyChange);
-      elements.forEach((el) => observer.unobserve(el));
+      observer?.disconnect();
     };
   }, []);
 

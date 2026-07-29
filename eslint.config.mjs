@@ -20,6 +20,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Gitignored one-off diagnostic scripts — not part of the app.
+    "scratch/**",
+    // Pre-Next static prototype kept for reference; see CLAUDE.md.
+    "app.js",
+    "products.js",
   ]),
 ]);
 

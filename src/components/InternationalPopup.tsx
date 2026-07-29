@@ -1,9 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, ChevronDown, User, Mail, Sparkles, Check } from 'lucide-react';
 import DiamondShapeSvg from '@/components/DiamondShapeSvg';
 import { useAuth } from '@/context/AuthContext';
+
+// Module-level: this list never changes, so keeping it out of the component body
+// makes `updateCountrySelection` a stable callback.
+const COUNTRIES = [
+  { code: 'IN', name: 'India', flag: '🇮🇳', currency: 'Indian Rupee (₹)', fullCode: 'IN / INR' },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', currency: 'British Pound (£)', fullCode: 'GB / GBP' },
+  { code: 'US', name: 'United States', flag: '🇺🇸', currency: 'US Dollar ($)', fullCode: 'US / USD' },
+  { code: 'AE', name: 'United Arab Emirates', flag: '🇦🇪', currency: 'UAE Dirham (AED)', fullCode: 'AE / AED' },
+  { code: 'AU', name: 'Australia', flag: '🇦🇺', currency: 'Australian Dollar ($)', fullCode: 'AU / AUD' },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦', currency: 'Canadian Dollar ($)', fullCode: 'CA / CAD' },
+  { code: 'EU', name: 'Europe', flag: '🇪🇺', currency: 'Euro (€)', fullCode: 'EU / EUR' },
+];
 
 export default function InternationalPopup() {
   const { signup } = useAuth();
@@ -17,16 +29,13 @@ export default function InternationalPopup() {
   const [visitorEmail, setVisitorEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Country options list
-  const countries = [
-    { code: 'IN', name: 'India', flag: '🇮🇳', currency: 'Indian Rupee (₹)', fullCode: 'IN / INR' },
-    { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', currency: 'British Pound (£)', fullCode: 'GB / GBP' },
-    { code: 'US', name: 'United States', flag: '🇺🇸', currency: 'US Dollar ($)', fullCode: 'US / USD' },
-    { code: 'AE', name: 'United Arab Emirates', flag: '🇦🇪', currency: 'UAE Dirham (AED)', fullCode: 'AE / AED' },
-    { code: 'AU', name: 'Australia', flag: '🇦🇺', currency: 'Australian Dollar ($)', fullCode: 'AU / AUD' },
-    { code: 'CA', name: 'Canada', flag: '🇨🇦', currency: 'Canadian Dollar ($)', fullCode: 'CA / CAD' },
-    { code: 'EU', name: 'Europe', flag: '🇪🇺', currency: 'Euro (€)', fullCode: 'EU / EUR' },
-  ];
+  const updateCountrySelection = useCallback((code: string) => {
+    const matched = COUNTRIES.find((c) => c.code === code) || COUNTRIES[0];
+    setSelectedCountry(matched.code);
+    setDetectedCountryName(matched.name);
+    setCurrencySymbol(matched.currency);
+    setCurrencyCode(matched.fullCode);
+  }, []);
 
   useEffect(() => {
     const onboardingCompleted = localStorage.getItem('currency_onboarding_completed');
@@ -77,14 +86,6 @@ export default function InternationalPopup() {
     detectLocation();
   }, []);
 
-  const updateCountrySelection = (code: string) => {
-    const matched = countries.find(c => c.code === code) || countries[0];
-    setSelectedCountry(matched.code);
-    setDetectedCountryName(matched.name);
-    setCurrencySymbol(matched.currency);
-    setCurrencyCode(matched.fullCode);
-  };
-
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     updateCountrySelection(e.target.value);
   };
@@ -121,7 +122,7 @@ export default function InternationalPopup() {
 
   if (!isOpen) return null;
 
-  const currentObj = countries.find(c => c.code === selectedCountry) || countries[0];
+  const currentObj = COUNTRIES.find((c) => c.code === selectedCountry) || COUNTRIES[0];
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[999] flex items-center justify-center p-4 animate-fade-in font-sans">
@@ -215,7 +216,7 @@ export default function InternationalPopup() {
               onChange={handleCountryChange}
               className="w-full border border-neutral-300 px-4 py-3 bg-white text-xs font-sans font-medium text-neutral-900 appearance-none focus:outline-none focus:border-neutral-900 cursor-pointer pr-10"
             >
-              {countries.map(c => (
+              {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.flag} {c.name}
                 </option>
