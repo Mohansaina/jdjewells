@@ -207,7 +207,20 @@ const mockInventory = generateMockInventory();
 // Contact: info@vdbapp.com to get API key + username
 // Docs: https://www.vdbapp.com/integrations/
 // ============================================================
+interface VdbCacheItem {
+  data: { diamonds: VdbDiamond[]; total: number };
+  timestamp: number;
+}
+const vdbSearchCache = new Map<string, VdbCacheItem>();
+const VDB_CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache
+
 async function queryVdb(params: VdbSearchParams): Promise<{ diamonds: VdbDiamond[]; total: number }> {
+  const cacheKey = JSON.stringify(params);
+  const cached = vdbSearchCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < VDB_CACHE_TTL) {
+    return cached.data;
+  }
+
   const apiKey = process.env.VDB_API_KEY || '_eTAh9su9_0cnehpDpqM9xA';
   const accessToken = process.env.VDB_ACCESS_TOKEN || 'iltz_Ie1tN0qm-ANqF7X6SRjwyhmMtzZsmqvyWOZ83I';
   const username = process.env.VDB_API_USERNAME || 'jdgloballtd2020@gmail.com';
@@ -229,17 +242,20 @@ async function queryVdb(params: VdbSearchParams): Promise<{ diamonds: VdbDiamond
   if (params.priceMax) queryParams.append('price_total_to', params.priceMax.toString());
 
   // Try V2 Gateway with Token & api_key headers first
-  let res = await fetch(`https://apiservices.vdbapp.com/v2/diamonds?${queryParams.toString()}`, {
-    headers: {
-      'Authorization': `Token token=${accessToken}, api_key=${apiKey}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    },
-    next: { revalidate: 60 },
-  });
+  let res: Response | null = null;
+  try {
+    res = await fetch(`https://apiservices.vdbapp.com/v2/diamonds?${queryParams.toString()}`, {
+      headers: {
+        'Authorization': `Token token=${accessToken}, api_key=${apiKey}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      next: { revalidate: 300 },
+    });
+  } catch {}
 
   // Fallback to V3 query if V2 fails
-  if (!res.ok) {
+  if (!res || !res.ok) {
     const v3Params = new URLSearchParams({
       api_key: apiKey,
       username: username,
@@ -250,13 +266,17 @@ async function queryVdb(params: VdbSearchParams): Promise<{ diamonds: VdbDiamond
     if (params.caratMin) v3Params.append('carat_min', params.caratMin.toString());
     if (params.caratMax) v3Params.append('carat_max', params.caratMax.toString());
 
-    res = await fetch(`https://api.vdbapp.com/v3/diamonds?${v3Params.toString()}`, {
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      next: { revalidate: 60 },
-    });
+    try {
+      res = await fetch(`https://api.vdbapp.com/v3/diamonds?${v3Params.toString()}`, {
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        next: { revalidate: 60 },
+      });
+    } catch {}
   }
 
-  if (!res.ok) throw new Error(`VDB API error: ${res.status} ${res.statusText}`);
+  if (!res || !res.ok) {
+    throw new Error(`VDB API error: ${res ? res.status : 'Network error'}`);
+  }
   const json = await res.json();
   const items = json.response?.body?.diamonds || json.response?.body || [];
   const total = parseInt(json.response?.total_count || json.response?.total || '0') || items.length;
@@ -296,13 +316,14 @@ async function queryVdb(params: VdbSearchParams): Promise<{ diamonds: VdbDiamond
       girdleMax: item.girdle_max,
       culet: item.culet_size || item.culet,
       stockNo: item.stock_num || item.vendor_sku,
-      supplier: item.vendor_name || 'VDB Supplier',
       rapPrice: parseFloat(item.price_per_carat) || undefined,
       rapnetDiscount: parseFloat(item.discount_percent) || undefined,
     };
   });
 
-  return { diamonds, total };
+  const result = { diamonds, total };
+  vdbSearchCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }
 
 // ============================================================

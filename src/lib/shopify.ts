@@ -25,8 +25,28 @@ const SHOPIFY_DOMAIN = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || '';
 const SHOPIFY_TOKEN = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '';
 const API_VERSION = process.env.SHOPIFY_API_VERSION || '2024-01';
 
+// High Performance In-Memory Cache (SWR) for Instant 0ms Load Times
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+const shopifyCache = new Map<string, CacheEntry<any>>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
+
 async function shopifyFetch<T>({ query, variables = {} }: { query: string; variables?: any }): Promise<T | null> {
+  const cacheKey = JSON.stringify({ query, variables });
+  const cached = shopifyCache.get(cacheKey);
+
+  // Return cached result immediately if unexpired
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.data;
+  }
+
   const cleanDomain = SHOPIFY_DOMAIN.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  if (!cleanDomain || !SHOPIFY_TOKEN) {
+    return cached ? cached.data : null;
+  }
+
   const endpoint = `https://${cleanDomain}/api/${API_VERSION}/graphql.json`;
 
   try {
@@ -38,22 +58,25 @@ async function shopifyFetch<T>({ query, variables = {} }: { query: string; varia
         'X-Shopify-Access-Token': SHOPIFY_TOKEN,
       },
       body: JSON.stringify({ query, variables }),
-      next: { revalidate: 60 }
+      next: { revalidate: 300 }
     });
 
     if (!res.ok) {
       console.warn(`[Shopify API Warning] HTTP ${res.status}: ${res.statusText}`);
-      return null;
+      return cached ? cached.data : null;
     }
 
     const json = await res.json();
     if (json.errors) {
       console.warn(`[Shopify API GraphQL Errors]`, json.errors);
     }
-    return json.data;
+    if (json.data) {
+      shopifyCache.set(cacheKey, { data: json.data, timestamp: Date.now() });
+    }
+    return json.data || (cached ? cached.data : null);
   } catch (err: any) {
     console.warn(`[Shopify API Fetch Error] ${err.message}`);
-    return null;
+    return cached ? cached.data : null;
   }
 }
 
