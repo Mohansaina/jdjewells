@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getDbClient } from '@/lib/db';
-import { ShieldCheck, Calendar, Hammer, Microscope, Truck, FileText, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Calendar, Hammer, Microscope, Truck, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export const revalidate = 0; // Disable caching

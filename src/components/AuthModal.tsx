@@ -7,7 +7,7 @@ import { X, Lock, Mail, User, Sparkles, ArrowRight, ShieldCheck } from 'lucide-r
 
 export default function AuthModal() {
   const { isAuthModalOpen, closeAuthModal, authModalMode, setAuthModalMode, login, signup } = useAuth();
-  const { success, error: toastError } = useToast();
+  const { success } = useToast();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,7 +40,7 @@ export default function AuthModal() {
           setFormError(res.error || 'Invalid email or password.');
         }
       }
-    } catch (err) {
+    } catch {
       setFormError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);

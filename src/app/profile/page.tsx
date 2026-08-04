@@ -5,7 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { useConfigurator } from '@/context/ConfiguratorContext';
 import { useToast } from '@/context/ToastContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Heart, ShoppingBag, ListOrdered, User, AlertCircle, Award, Settings, ShieldCheck, ExternalLink, LogOut } from 'lucide-react';
+import { Heart, ListOrdered, User, Settings, ShieldCheck, ExternalLink, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 

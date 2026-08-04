@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, ChevronDown, User, Mail, Sparkles, Check } from 'lucide-react';
+import { X, ChevronDown, User, Mail, Sparkles } from 'lucide-react';
 import DiamondShapeSvg from '@/components/DiamondShapeSvg';
 import { useAuth } from '@/context/AuthContext';
 
@@ -74,7 +74,7 @@ export default function InternationalPopup() {
             updateCountrySelection(data.country_code);
           }
         }
-      } catch (err) {
+      } catch {
         if (!onboardingCompleted) {
           setTimeout(() => {
             setIsOpen(true);

@@ -75,7 +75,7 @@ class AudioEngine {
 
     setTimeout(() => {
       this.ambientOscs.forEach(o => {
-        try { o.osc.stop(); } catch(e) {}
+        try { o.osc.stop(); } catch {}
       });
       this.ambientOscs = [];
       this.isAmbientPlaying = false;
@@ -110,7 +110,7 @@ class AudioEngine {
 
       osc.start(now);
       osc.stop(now + 0.4);
-    } catch (e) {}
+    } catch {}
   }
 
   // Micro click interface sound when clicking buttons
@@ -135,7 +135,7 @@ class AudioEngine {
 
       osc.start(now);
       osc.stop(now + 0.12);
-    } catch (e) {}
+    } catch {}
   }
 }
 

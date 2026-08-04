@@ -637,7 +637,7 @@ function safeWriteFile(filePath: string, content: string) {
   try {
     fs.writeFileSync(tempPath, content, 'utf-8');
     fs.renameSync(tempPath, filePath);
-  } catch (err) {
+  } catch {
     if (fs.existsSync(tempPath)) {
       try {
         fs.unlinkSync(tempPath);
@@ -1017,7 +1017,7 @@ class DatabaseProxy {
               error.message?.includes("Timed out");
 
             if (isConnectionError) {
-              console.warn(`[Database Failover] Unable to connect to Supabase database. Falling back to local offline JSON database (.local_db.json).`);
+              console.warn(`[Database Failover] Unable to connect to primary database. Falling back to local offline JSON database (.local_db.json).`);
               this.useMock = true;
               return mockModel[prop](...args);
             }
@@ -1030,7 +1030,6 @@ class DatabaseProxy {
 }
 
 // Global caching for development hot reloading
-let dbInstance: any;
 
 export function getDbClient(): any {
   if (process.env.DATABASE_URL) {

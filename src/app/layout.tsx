@@ -7,7 +7,6 @@ import { ToastProvider } from "@/context/ToastContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Preloader from "@/components/Preloader";
-import CookieBanner from "@/components/CookieBanner";
 import InternationalPopup from "@/components/InternationalPopup";
 
 import { AuthProvider } from "@/context/AuthContext";
@@ -60,7 +59,6 @@ export default function RootLayout({
                 <Header />
                 <main className="flex-grow">{children}</main>
                 <Footer />
-                <CookieBanner />
                 <InternationalPopup />
               </ConfiguratorProvider>
             </CartProvider>

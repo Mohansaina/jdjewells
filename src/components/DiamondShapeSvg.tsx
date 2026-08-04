@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { DiamondShape } from '@/context/ConfiguratorContext';
 
 interface DiamondShapeSvgProps {
   shape: string;

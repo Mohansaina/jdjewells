@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingBag, Heart, User, Menu, X, ChevronDown, Sparkles, AlertCircle, Calendar, Phone, Globe, Check } from 'lucide-react';
+import { ShoppingBag, Heart, User, Menu, X, ChevronDown, AlertCircle, Calendar, Phone, Globe, Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useConfigurator, DiamondShape, SettingStyle, MetalType, JewelryCategory } from '@/context/ConfiguratorContext';
 import { useToast } from '@/context/ToastContext';

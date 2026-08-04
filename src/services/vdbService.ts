@@ -338,7 +338,7 @@ export class VdbService {
           try {
             const specs = JSON.parse(item.specs || '{}');
             if (specs.shape) shapeMatch = selectedShapesLower.includes(specs.shape.toLowerCase());
-          } catch(e) {}
+          } catch {}
           
           if (!shapeMatch) {
             const titleLower = item.title?.toLowerCase() || '';
@@ -356,7 +356,7 @@ export class VdbService {
           try {
             const specs = JSON.parse(item.specs || '{}');
             if (specs.setting) styleMatch = selectedStylesLower.includes(specs.setting.toLowerCase());
-          } catch(e) {}
+          } catch {}
           
           if (!styleMatch) {
             const titleLower = item.title?.toLowerCase() || '';

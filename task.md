@@ -6,7 +6,7 @@
 - [x] Create `src/components/InternationalPopup.tsx` geolocation detection modal
 - [x] Update `src/components/Header.tsx` to support `IN / INR` and render the popup
 - [x] Update pricing formatters in `page.tsx` (Home, Cart, Checkout, Products, Profile)
-- [x] Connect database to Supabase PostgreSQL and run seed migrations
+- [x] Integrate Shopify Storefront API and remove Supabase dependencies
 - [x] Enhance backend API routes with GET/PUT for single product management
 - [x] Fix mega menu clashing (bleed-through opacity) and clarify duplicate navigation links
 - [x] Remove custom cursor component and override native cursor-none stylesheets
