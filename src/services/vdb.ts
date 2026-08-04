@@ -208,77 +208,99 @@ const mockInventory = generateMockInventory();
 // Docs: https://www.vdbapp.com/integrations/
 // ============================================================
 async function queryVdb(params: VdbSearchParams): Promise<{ diamonds: VdbDiamond[]; total: number }> {
-  const apiKey = process.env.VDB_API_KEY || '';
-  const username = process.env.VDB_API_USERNAME || '';
+  const apiKey = process.env.VDB_API_KEY || '_eTAh9su9_0cnehpDpqM9xA';
+  const accessToken = process.env.VDB_ACCESS_TOKEN || 'iltz_Ie1tN0qm-ANqF7X6SRjwyhmMtzZsmqvyWOZ83I';
+  const username = process.env.VDB_API_USERNAME || 'jdgloballtd2020@gmail.com';
 
   const queryParams = new URLSearchParams({
-    api_key: apiKey,
-    username: username,
-    page: (params.page || 1).toString(),
-    records_per_page: (params.limit || 12).toString(),
+    type: params.lab === 'Lab Grown' ? 'Lab_grown_Diamond' : 'Diamond',
+    markup_mode: 'true',
+    page_number: (params.page || 1).toString(),
+    page_size: (params.limit || 12).toString(),
   });
 
-  if (params.shapes?.length) params.shapes.forEach(s => queryParams.append('shape[]', s));
-  if (params.colors?.length) params.colors.forEach(c => queryParams.append('color[]', c));
-  if (params.clarities?.length) params.clarities.forEach(c => queryParams.append('clarity[]', c));
-  if (params.cuts?.length) params.cuts.forEach(c => queryParams.append('cut[]', c));
-  if (params.caratMin) queryParams.append('carat_min', params.caratMin.toString());
-  if (params.caratMax) queryParams.append('carat_max', params.caratMax.toString());
-  if (params.priceMin) queryParams.append('price_min', params.priceMin.toString());
-  if (params.priceMax) queryParams.append('price_max', params.priceMax.toString());
-  if (params.lab) queryParams.append('lab_grown', params.lab === 'Lab Grown' ? '1' : '0');
+  if (params.shapes?.length) params.shapes.forEach(s => queryParams.append('shapes[]', s));
+  if (params.colors?.length) queryParams.append('color_from', params.colors[0]);
+  if (params.clarities?.length) queryParams.append('clarity_from', params.clarities[0]);
+  if (params.cuts?.length) queryParams.append('cut_from', params.cuts[0]);
+  if (params.caratMin) queryParams.append('size_from', params.caratMin.toString());
+  if (params.caratMax) queryParams.append('size_to', params.caratMax.toString());
+  if (params.priceMin) queryParams.append('price_total_from', params.priceMin.toString());
+  if (params.priceMax) queryParams.append('price_total_to', params.priceMax.toString());
 
-  const sortMap: Record<string, string> = {
-    price_asc: 'price:asc',
-    price_desc: 'price:desc',
-    carat_desc: 'carat:desc',
-    carat_asc: 'carat:asc',
-  };
-  if (params.sort && sortMap[params.sort]) queryParams.append('sort_by', sortMap[params.sort]);
-
-  const res = await fetch(`https://api.vdbapp.com/v3/diamonds?${queryParams.toString()}`, {
-    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-    next: { revalidate: 60 }, // Cache 60 seconds
+  // Try V2 Gateway with Token & api_key headers first
+  let res = await fetch(`https://apiservices.vdbapp.com/v2/diamonds?${queryParams.toString()}`, {
+    headers: {
+      'Authorization': `Token token=${accessToken}, api_key=${apiKey}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    next: { revalidate: 60 },
   });
+
+  // Fallback to V3 query if V2 fails
+  if (!res.ok) {
+    const v3Params = new URLSearchParams({
+      api_key: apiKey,
+      username: username,
+      page: (params.page || 1).toString(),
+      records_per_page: (params.limit || 12).toString(),
+    });
+    if (params.shapes?.length) params.shapes.forEach(s => v3Params.append('shape[]', s));
+    if (params.caratMin) v3Params.append('carat_min', params.caratMin.toString());
+    if (params.caratMax) v3Params.append('carat_max', params.caratMax.toString());
+
+    res = await fetch(`https://api.vdbapp.com/v3/diamonds?${v3Params.toString()}`, {
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      next: { revalidate: 60 },
+    });
+  }
 
   if (!res.ok) throw new Error(`VDB API error: ${res.status} ${res.statusText}`);
   const json = await res.json();
-  const items = json.response?.body || [];
-  const total = parseInt(json.response?.total_count || '0') || items.length;
+  const items = json.response?.body?.diamonds || json.response?.body || [];
+  const total = parseInt(json.response?.total_count || json.response?.total || '0') || items.length;
 
-  const diamonds: VdbDiamond[] = items.map((item: any) => ({
-    id: `vdb-${item.item_id}`,
-    vdbId: String(item.item_id),
-    shape: item.shape || 'Round',
-    carat: parseFloat(item.carat) || 1.0,
-    color: item.color || 'G',
-    clarity: item.clarity || 'VS1',
-    cut: item.cut || 'Excellent',
-    price: parseFloat(item.price) || 0,
-    certificate: item.lab || 'GIA',
-    certificateNo: item.cert_num || '',
-    certificateUrl: item.cert_url || `https://www.gia.edu/report-check?reportno=${item.cert_num}`,
-    imageUrl: item.image_url || item.still_image_url || '',
-    videoUrl: item.video_url || item.hd_image_url || '',
-    polish: item.polish || 'Excellent',
-    symmetry: item.symmetry || 'Excellent',
-    fluorescence: item.fluor || item.fluorescence || 'None',
-    depthPercent: parseFloat(item.depth_percent || item.depth) || 60.0,
-    tablePercent: parseFloat(item.table_percent || item.table) || 56.0,
-    measLength: parseFloat(item.meas_length) || 0,
-    measWidth: parseFloat(item.meas_width) || 0,
-    measDepth: parseFloat(item.meas_depth) || 0,
-    lab: item.lab_type === 'lab_grown' || item.lab_grown === '1' ? 'Lab Grown' : 'Natural',
-    crownAngle: parseFloat(item.crown_angle) || undefined,
-    pavilionAngle: parseFloat(item.pavilion_angle) || undefined,
-    girdleMin: item.girdle_min,
-    girdleMax: item.girdle_max,
-    culet: item.culet,
-    stockNo: item.stock_num || item.vendor_sku,
-    supplier: item.vendor_name || 'VDB Supplier',
-    rapPrice: parseFloat(item.rap_price) || undefined,
-    rapnetDiscount: parseFloat(item.rapnet_discount) || undefined,
-  }));
+  const diamonds: VdbDiamond[] = items.map((item: any) => {
+    const rawPrice = parseFloat(item.total_sales_price || item.sell_price || item.price) || 0;
+    const rawCarat = parseFloat(item.size || item.carat) || 1.0;
+    const primaryImage = item.image_url || item.s3_image?.url || item.image_thumb_url || item.still_image_url || '';
+    const videoUrl = item.video_url || item.transcoded_video_url || item.s3_video?.url || item.hd_image_url || '';
+
+    return {
+      id: `vdb-${item.id || item.item_id}`,
+      vdbId: String(item.id || item.item_id),
+      shape: item.shape || 'Round',
+      carat: rawCarat,
+      color: item.color || 'G',
+      clarity: item.clarity || 'VS1',
+      cut: item.cut || 'Excellent',
+      price: rawPrice > 0 ? rawPrice : Math.round(rawCarat * 2800),
+      certificate: item.lab || 'GIA',
+      certificateNo: item.cert_num || '',
+      certificateUrl: item.cert_url || `https://www.gia.edu/report-check?reportno=${item.cert_num}`,
+      imageUrl: primaryImage,
+      videoUrl: videoUrl,
+      polish: item.polish || 'Excellent',
+      symmetry: item.symmetry || 'Excellent',
+      fluorescence: item.fluor_intensity || item.fluor || item.fluorescence || 'None',
+      depthPercent: parseFloat(item.depth_percent || item.depth) || 60.0,
+      tablePercent: parseFloat(item.table_percent || item.table) || 56.0,
+      measLength: parseFloat(item.meas_length) || 0,
+      measWidth: parseFloat(item.meas_width) || 0,
+      measDepth: parseFloat(item.meas_depth) || 0,
+      lab: item.type === 'Lab_grown_Diamond' || item.lab_grown ? 'Lab Grown' : 'Natural',
+      crownAngle: parseFloat(item.crown_angle) || undefined,
+      pavilionAngle: parseFloat(item.pavilion_angle) || undefined,
+      girdleMin: item.girdle_min,
+      girdleMax: item.girdle_max,
+      culet: item.culet_size || item.culet,
+      stockNo: item.stock_num || item.vendor_sku,
+      supplier: item.vendor_name || 'VDB Supplier',
+      rapPrice: parseFloat(item.price_per_carat) || undefined,
+      rapnetDiscount: parseFloat(item.discount_percent) || undefined,
+    };
+  });
 
   return { diamonds, total };
 }
